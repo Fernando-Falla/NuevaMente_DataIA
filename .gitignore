@@ -1,0 +1,24 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyc
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+
+# Credenciales y variables de entorno
+.env
+.env.*
+!.env.example
+
+# Bases de datos y Caché local
+.chromadb_data/
+.dataia_cache/
+
+# Archivos temporales y de IDEs/Tools
+.speckit/
+arbol.txt
