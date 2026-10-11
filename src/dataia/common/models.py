@@ -41,6 +41,7 @@ class ChunkMetadata(BaseModel):
     doc_type: str
     source: Optional[str] = None
     page: Optional[int] = None
+    page_end: Optional[int] = None # Última página que abarca el chunk (los chunks pueden cruzar páginas)
     section: Optional[str] = None
     tipo_contenido: str = "afirmacion" # definicion | procedimiento | ejemplo | afirmacion | tabla | codigo
     nivel_dificultad: int = 1
@@ -59,6 +60,8 @@ class ChunkingResult(BaseModel):
     status: str = "aprobado"
     document_id: str
     chunks: List[Chunk]
+    # Se propaga desde IA-02 para que IA-04 la persista junto a los vectores
+    pedagogical_metadata: Optional[DocumentPedagogicalMetadata] = None
 
 ChunkingResponse = Union[ChunkingResult, ChunkingError]
 
@@ -72,5 +75,7 @@ class VectorStoreResult(BaseModel):
     document_id: str
     chunks_inserted: int
     collection_name: str
+    # True si el documento ya estaba indexado con los mismos fragmentos (no se recalcularon embeddings)
+    already_indexed: bool = False
 
 VectorStoreResponse = Union[VectorStoreResult, VectorStoreError]

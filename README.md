@@ -46,12 +46,13 @@ Documento (PDF / MD / TXT)
 |-|-|
 |Lenguaje|Python ≥ 3.14|
 |Gestor de entorno|[uv](https://github.com/astral-sh/uv)|
-|Extracción PDF|PyMuPDF (`import pymupdf`)|
+|Extracción PDF|PyMuPDF + `pymupdf4llm` (Markdown con títulos y secciones; respaldo a texto plano por página)|
 |Validación / DTOs|Pydantic v2|
-|Enriquecimiento LLM|Gemini (`gemini-2.5-flash`) con Context Caching|
-|Chunking|LangChain Text Splitters (Recursive, 800/150) + Custom Structural Splitter|
+|Enriquecimiento LLM|Gemini (`gemini-3.1-flash-lite`, configurable con `GEMINI_MODEL`), clasificación de chunks en lotes, caché local|
+|Chunking|LangChain Text Splitters (Recursive, 800/150) + Custom Structural Splitter sobre el documento completo (`page`, `page_end`, `section`)|
 |Embeddings|Gemini (`models/gemini-embedding-001`)|
-|Vector store|ChromaDB (persistente, colección `nuevamente_docs`)|
+|Vector store|ChromaDB (persistente, colección `nuevamente_docs`, ids estables por `chunk_id`) + registro por documento|
+|Pruebas|pytest (`tests/`)|
 |Orquestación|LangChain|
 
 Dependencias declaradas en `pyproject.toml` y exportadas en `requirements.txt`.
@@ -68,11 +69,14 @@ Dependencias declaradas en `pyproject.toml` y exportadas en `requirements.txt`.
 │       ├── chunking/             # IA-03: Splitter estructural y metadata por chunk
 │       ├── vectorstore/          # IA-04: Cliente ChromaDB
 │       └── common/               # Modelos Pydantic compartidos
+├── tests/
+│   └── test_dataia.py            # Pruebas sin red ni LLM de IA-02 a IA-04
 ├── scripts/
 │   ├── test_pipeline_local.py    # Prueba E2E local IA-02→IA-04 (incluye auditoría visual)
-│   └── validate_retrieval.py     # Validación IA-04 midiendo Recall@4 y Precision@4
+│   ├── validate_retrieval.py     # Validación IA-04 midiendo Recall@4 y Precision@4
+│   └── comparar_chunking.py      # Compara extracción y chunking entre dos versiones (sin LLM)
 ├── brain/                        # Documentación viva (task.md, implementation_plan.md)
-├── docs/                         # Documentación adicional de diseño
+├── docs/                         # Documentación de cambios (MEJORAS_FASE_A.md)
 ├── pyproject.toml / uv.lock      # Configuración de dependencias (uv)
 ├── requirements.txt              # Export compatible con pip
 ├── .env.example
@@ -120,8 +124,22 @@ Contenido esperado de `.env`:
 # Obligatoria para embeddings (IA-04) y extracción de metadata (IA-02/IA-03)
 GOOGLE_API_KEY=your_google_api_key_here
 
+# Opcional: clave propia para Data/IA (si falta, se usa GOOGLE_API_KEY)
+# DATAIA_GOOGLE_API_KEY=your_google_api_key_here
+
+# Opcional: modelo para la metadata pedagógica (default: gemini-3.1-flash-lite)
+# GEMINI_MODEL=gemini-3.1-flash-lite
+
 # Opcional: modelo de embeddings (default: models/gemini-embedding-001)
 # GOOGLE_EMBEDDING_MODEL=models/gemini-embedding-001
+
+# Opcional: con 1, un fallo del proveedor aborta en lugar de usar valores por defecto
+# IA_STRICT_PROVIDERS=1
+
+# Opcional: registro por documento, caché y tamaño de lote de clasificación
+# DATAIA_DOCUMENTS_DIR=.dataia_documents
+# DATAIA_CACHE_DIR=.dataia_cache
+# DATAIA_ENRICH_BATCH_SIZE=15
 
 # Opcional: persistencia ChromaDB
 # CHROMADB_DIR=.chromadb_data
@@ -145,6 +163,14 @@ export GOOGLE_API_KEY="TU_API_KEY_REAL"
 ---
 
 ## Uso rápido y Pruebas
+
+> **Redes con inspección TLS** (antivirus o proxy que reemplaza certificados): `uv` necesita `--system-certs` para descargar paquetes (`uv sync --system-certs`), y los scripts usan `truststore` para que Python confíe en los certificados del sistema al llamar a Gemini.
+
+### 0. Pruebas automáticas (sin red ni LLM)
+
+```powershell
+uv run pytest
+```
 
 ### 1. Prueba Local del Pipeline (IA-02 → IA-04)
 
@@ -178,6 +204,7 @@ El reporte se guardará automáticamente en `.reports/`.
 |IA-02|Ingestión, validación, normalización, metadata|Completado|
 |IA-03|Chunking jerárquico consciente + metadata|Completado|
 |IA-04|Embeddings Gemini + ChromaDB + Validación|Completado|
+|Fase A|Mejoras de IA-02 a IA-04 (ver `docs/MEJORAS_FASE_A.md`)|Completado|
 |IA-05|Retriever / RAG|Pendiente|
 |IA-06|Generación LLM + perfiles|Pendiente|
 |IA-07|Validación de fidelidad|Pendiente|

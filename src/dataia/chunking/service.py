@@ -29,7 +29,8 @@ def process_chunks(ingestion_result: IngestionResult) -> ChunkingResponse:
             
         return ChunkingResult(
             document_id=ingestion_result.document_id,
-            chunks=chunks
+            chunks=chunks,
+            pedagogical_metadata=ingestion_result.pedagogical_metadata
         )
         
     except Exception as e:

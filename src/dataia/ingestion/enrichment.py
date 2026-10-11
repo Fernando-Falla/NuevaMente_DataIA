@@ -1,15 +1,19 @@
 import os
 import json
+import logging
+from dataia.common.credentials import get_gemini_model, get_google_api_key
 from dataia.common.models import DocumentPedagogicalMetadata
 from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import ValidationError
 
-CACHE_DIR = ".dataia_cache/metadata"
+logger = logging.getLogger(__name__)
+
+# El document_id deriva del contenido, por lo que la caché es reutilizable entre ingestiones
+CACHE_DIR = os.path.join(os.getenv("DATAIA_CACHE_DIR", ".dataia_cache"), "metadata")
 
 def enrich_document_metadata(document_id: str, full_text: str) -> DocumentPedagogicalMetadata:
     """
-    Generates pedagogical metadata using Gemini 2.5 Flash.
-    Caches the result in `.dataia_cache/metadata/{document_id}.json`.
+    Genera la metadata pedagógica del documento con Gemini (modelo de GEMINI_MODEL).
+    Guarda el resultado en `DATAIA_CACHE_DIR/metadata/{document_id}.json`.
     """
     os.makedirs(CACHE_DIR, exist_ok=True)
     cache_file = os.path.join(CACHE_DIR, f"{document_id}.json")
@@ -23,7 +27,7 @@ def enrich_document_metadata(document_id: str, full_text: str) -> DocumentPedago
             pass # Fallback to re-generating
 
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+        llm = ChatGoogleGenerativeAI(model=get_gemini_model(), temperature=0.0, google_api_key=get_google_api_key())
         structured_llm = llm.with_structured_output(DocumentPedagogicalMetadata)
         
         prompt = (
@@ -42,6 +46,9 @@ def enrich_document_metadata(document_id: str, full_text: str) -> DocumentPedago
             
         return result
     except Exception as e:
+        if os.getenv("IA_STRICT_PROVIDERS") == "1":
+            raise
+        logger.warning("Metadata pedagógica del documento no disponible; se usan valores vacíos (%s: %s)", type(e).__name__, str(e)[:200])
         return DocumentPedagogicalMetadata(
             document_id=document_id,
             conceptos_clave=[],

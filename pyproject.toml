@@ -12,7 +12,9 @@ dependencies = [
     "langchain-text-splitters>=1.1.1",
     "pydantic>=2.13.5",
     "pymupdf>=1.28.2",
+    "pymupdf4llm>=0.0.17,<1.0",
     "python-dotenv>=1.2.3",
+    "truststore>=0.10",
 ]
 
 [project.scripts]
@@ -21,3 +23,14 @@ nuevamente-dataia-pipe = "nuevamente_dataia_pipe:main"
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-timeout>=2.4.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+timeout = 60

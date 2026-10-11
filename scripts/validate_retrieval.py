@@ -7,6 +7,16 @@ from pydantic import BaseModel, Field
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_ROOT / "src"))
 
+# Credenciales desde .env (ignorado por Git) y certificados del sistema operativo,
+# necesarios en redes que inspeccionan TLS (antivirus, proxies corporativos).
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 from dataia.vectorstore.client import get_vector_store
 from langchain_google_genai import ChatGoogleGenerativeAI
 

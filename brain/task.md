@@ -45,8 +45,15 @@
   - [x] Configurar Gemini Embeddings (`langchain-google-genai`).
   - [x] Configurar persistencia en ChromaDB local preservando trazabilidad (configurable por variables de entorno `CHROMADB_DIR` y `CHROMADB_COLLECTION`).
   - [ ] [Reapertura] Validar recuperación con consultas representativas y medir Recall/Precision (IA-04.10 a IA-04.14).
+- [x] **Fase A: Mejoras de IA-02 a IA-04** (detalle en `docs/MEJORAS_FASE_A.md`)
+  - [x] Extracción PDF a Markdown con `pymupdf4llm`, control de cobertura por página y limpieza de encabezados, pies y enlaces.
+  - [x] `document_id` por hash del archivo (reingestión idempotente).
+  - [x] Chunking sobre el documento completo con `page`, `page_end` y `section`.
+  - [x] Clasificación de chunks en lotes, con caché por hash del texto y modelo configurable (`GEMINI_MODEL`).
+  - [x] ChromaDB con ids estables, actualización de metadata sin recalcular embeddings y registro por documento.
+  - [x] 15 pruebas automáticas sin red ni LLM en `tests/test_dataia.py`; validación con Gemini real sobre los PDFs de VCN, JWT y microservicios.
 - [ ] **Fase 5: Recuperación (IA-05)**
-  - [ ] Retriever Semántico y evaluación del umbral de RAG.
+  - [ ] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`; la similitud queda como apoyo.
 - [ ] **Fase 6: Generación LLM (IA-06)**
   - [ ] Prompt System y perfiles educativos.
   - [ ] Generación de Formatos (Quiz, Flashcards, etc).

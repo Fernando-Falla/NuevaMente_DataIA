@@ -7,6 +7,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Añadir 'src' al path para poder importar módulos locales
 sys.path.append(str(PROJECT_ROOT / "src"))
 
+# Credenciales desde .env (ignorado por Git) y certificados del sistema operativo,
+# necesarios en redes que inspeccionan TLS (antivirus, proxies corporativos).
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 from dataia.ingestion.service import ingest_document
 from dataia.chunking.service import process_chunks
 from dataia.vectorstore.service import process_vectorstore
