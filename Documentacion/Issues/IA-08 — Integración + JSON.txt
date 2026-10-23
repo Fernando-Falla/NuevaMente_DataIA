@@ -1,0 +1,1125 @@
+# IA-08 — Integración + JSON
+
+## 🎯 Objetivo
+
+Implementar y validar la etapa de integración de Data & IA, transformando el resultado validado de IA-07 en una salida estructurada y consistente que pueda ser consumida por Backend y posteriormente presentada por Frontend.
+
+IA-08 deberá establecer el contrato de salida entre Data & IA y Backend, asegurando que el contenido educativo generado:
+
+- Se encuentre previamente validado.
+- Mantenga la información de trazabilidad.
+- Respete el perfil solicitado.
+- Respete el formato educativo solicitado.
+- Posea una estructura procesable.
+- Pueda serializarse correctamente como JSON.
+- Permita su posterior almacenamiento y visualización.
+
+El flujo será:
+
+```text
+IA-06
+Contenido generado
+        ↓
+IA-07
+Validación IA
+        ↓
+Resultado validado
+        ↓
+IA-08
+Integración + JSON
+        ↓
+JSON estructurado
+        ↓
+Backend
+        ↓
+Frontend
+```
+
+---
+
+## 🧩 Alcance
+
+IA-08 deberá contemplar:
+
+- Definición del contrato de salida de Data & IA.
+- Definición del schema de respuesta.
+- Integración del resultado de IA-07.
+- Estructuración del contenido según el formato educativo.
+- Conservación de fuentes y trazabilidad.
+- Inclusión de información del perfil y formato utilizados.
+- Manejo de estados de procesamiento.
+- Manejo de errores.
+- Serialización a JSON.
+- Validación del schema.
+- Compatibilidad con Backend.
+- Preparación de la salida para Frontend.
+- Pruebas de integración.
+
+La actividad deberá mantener una separación clara entre:
+
+**Contenido generado y validado por IA**
+
+y
+
+**Procesamiento, exposición y persistencia realizado por Backend.**
+
+IA-08 define y entrega la estructura de salida de Data & IA.
+
+Backend será responsable posteriormente de exponer dicha información mediante su API y gestionar las integraciones correspondientes.
+
+---
+
+## 📥 Entradas
+
+IA-08 recibirá principalmente desde IA-07:
+
+- Contenido educativo validado.
+- Estado de validación.
+- Perfil utilizado.
+- Formato utilizado.
+- Fuentes utilizadas.
+- Referencias a chunks.
+- Metadata disponible.
+- Resultado de las validaciones.
+- Información necesaria para mantener trazabilidad.
+
+Conceptualmente:
+
+```text
+IA-07
+│
+├── contenido
+├── perfil
+├── formato
+├── fuentes
+├── chunks
+├── metadata
+└── estado de validación
+        ↓
+      IA-08
+```
+
+Cuando sea necesario, IA-08 podrá utilizar información proveniente de etapas anteriores del pipeline, siempre que sea necesaria para completar el contrato de salida.
+
+---
+
+## 📤 Salida
+
+IA-08 deberá generar una respuesta JSON estructurada y validada.
+
+Como representación conceptual inicial:
+
+```json
+{
+  "status": "success",
+  "document": {
+    "document_id": "doc-001",
+    "name": "vcn.pdf"
+  },
+  "adaptation": {
+    "profile": "Junior",
+    "format": "Flashcards"
+  },
+  "content": {},
+  "sources": [
+    {
+      "document_id": "doc-001",
+      "chunk_id": "doc-001-chunk-003"
+    }
+  ],
+  "validation": {
+    "status": "approved"
+  }
+}
+```
+
+Este ejemplo es **conceptual**.
+
+El schema definitivo deberá definirse y validarse conjuntamente con Backend, considerando:
+
+- Contrato IA ↔ Backend.
+- Contrato Backend ↔ Frontend.
+- Estructuras específicas de cada formato.
+- Requisitos de trazabilidad.
+- Manejo de errores.
+- Persistencia de resultados.
+
+---
+
+## 🔗 Principio de integración
+
+IA-08 deberá garantizar que únicamente los resultados que hayan pasado por el proceso de validación definido en IA-07 puedan considerarse resultados finales de Data & IA.
+
+El flujo esperado será:
+
+```text
+Generación
+    ↓
+Validación
+    ↓
+¿Resultado válido?
+ ┌──────┴───────┐
+ Sí             No
+ ↓               ↓
+IA-08        Ajuste / Rechazo
+ ↓
+JSON
+ ↓
+Backend
+```
+
+No deberá existir un camino que permita enviar silenciosamente contenido generado pero no validado como si fuera resultado final.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+
+**Participación / validación:**
+
+- Fernando Falla — Data Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende definir, implementar y validar la salida estructurada de Data & IA y coordinar su contrato con Backend.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-07 — Validación IA**
+
+Proporciona el contenido validado y la información necesaria para construir la salida final.
+
+### Integración
+
+**Backend**
+
+Deberá coordinar con IA-08:
+
+- Schema de entrada/salida.
+- Campos obligatorios.
+- Estados.
+- Errores.
+- Fuentes.
+- Trazabilidad.
+- Estructuras específicas por formato.
+
+### Salida
+
+**Frontend**
+
+Consumirá posteriormente la información expuesta por Backend para representar el contenido educativo.
+
+### Dependencias transversales
+
+IA-08 deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-05 — Retriever / RAG.
+- IA-06 — LLM + Adaptación.
+- IA-07 — Validación IA.
+- Backend — contrato de integración.
+- Frontend — estructuras necesarias para visualización.
+
+---
+
+## 5. Diseño del contrato JSON
+
+El contrato JSON deberá definir una estructura común para los resultados generados por Data & IA, independientemente del formato educativo solicitado.
+
+El objetivo será que Backend pueda procesar una respuesta consistente y que Frontend pueda identificar qué tipo de contenido debe representar.
+
+---
+
+### 5.1 Estructura común
+
+La respuesta deberá contemplar como mínimo información relacionada con:
+
+- Estado del procesamiento.
+- Identificación del documento.
+- Perfil utilizado.
+- Formato solicitado.
+- Contenido educativo.
+- Fuentes.
+- Información de validación.
+- Metadata necesaria para trazabilidad.
+
+Una estructura conceptual inicial será:
+
+```json
+{
+  "status": "success",
+  "document": {
+    "document_id": "doc-001",
+    "name": "vcn.pdf"
+  },
+  "adaptation": {
+    "profile": "Junior",
+    "format": "Flashcards"
+  },
+  "content": {},
+  "sources": [],
+  "validation": {
+    "status": "approved"
+  }
+}
+```
+
+Esta estructura es conceptual.
+
+El schema definitivo deberá ser acordado con Backend y validado durante las pruebas de integración.
+
+---
+
+### 5.2 Identificación del documento
+
+La respuesta deberá permitir identificar el documento utilizado para generar el contenido.
+
+Como mínimo se deberá conservar:
+
+- `document_id`
+- Nombre o referencia del documento.
+
+Cuando esté disponible, podrá conservarse información adicional del origen.
+
+La identificación deberá mantenerse consistente con la utilizada durante IA-02, IA-03, IA-04, IA-05 y IA-07.
+
+---
+
+### 5.3 Información de adaptación
+
+La respuesta deberá indicar los parámetros utilizados para generar el contenido:
+
+```json
+{
+  "profile": "Junior",
+  "format": "Flashcards"
+}
+```
+
+Estos valores deberán corresponder a los parámetros realmente utilizados durante IA-06.
+
+No deberá declararse un perfil o formato diferente al utilizado durante la generación.
+
+---
+
+### 5.4 Contenido específico por formato
+
+El campo `content` deberá contener una estructura adecuada al formato educativo solicitado.
+
+La estructura podrá ser polimórfica según el tipo de contenido.
+
+Conceptualmente:
+
+```text
+content
+   │
+   ├── Flashcards
+   ├── Quiz
+   ├── TL;DR
+   ├── Tutorial
+   └── Map
+```
+
+La implementación deberá evitar que Backend o Frontend tengan que interpretar texto libre para determinar cómo representar el contenido.
+
+---
+
+### 5.5 Flashcards
+
+Cuando el formato sea `Flashcards`, la respuesta deberá contener una colección estructurada de tarjetas.
+
+Ejemplo conceptual:
+
+```json
+{
+  "type": "flashcards",
+  "items": [
+    {
+      "question": "¿Qué es una VCN?",
+      "answer": "Contenido generado a partir de la información recuperada.",
+      "explanation": "Explicación adaptada al perfil seleccionado.",
+      "sources": [
+        {
+          "document_id": "doc-001",
+          "chunk_id": "doc-001-chunk-003"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Los campos definitivos deberán validarse durante la implementación y coordinación con Frontend.
+
+---
+
+### 5.6 Quiz
+
+Cuando el formato sea `Quiz`, deberá utilizarse una estructura que permita representar las preguntas y sus respuestas.
+
+Ejemplo conceptual:
+
+```json
+{
+  "type": "quiz",
+  "items": [
+    {
+      "question": "Pregunta generada a partir del contexto.",
+      "options": [
+        "Opción A",
+        "Opción B",
+        "Opción C"
+      ],
+      "correct_answer": "Opción A",
+      "explanation": "Explicación sustentada por la fuente.",
+      "sources": [
+        {
+          "document_id": "doc-001",
+          "chunk_id": "doc-001-chunk-002"
+        }
+      ]
+    }
+  ]
+}
+```
+
+La estructura deberá permitir que Frontend pueda implementar posteriormente un componente interactivo sin depender de interpretar texto generado libremente.
+
+---
+
+### 5.7 TL;DR
+
+Cuando se implemente el formato `TL;DR`, deberá permitir representar una síntesis estructurada.
+
+Ejemplo conceptual:
+
+```json
+{
+  "type": "tldr",
+  "summary": "Resumen generado a partir del contexto recuperado.",
+  "key_points": [
+    "Concepto principal",
+    "Concepto relevante",
+    "Relación importante"
+  ]
+}
+```
+
+La información deberá permanecer sustentada en las fuentes utilizadas.
+
+---
+
+### 5.8 Tutorial
+
+Cuando se implemente el formato `Tutorial`, podrá utilizarse una estructura progresiva.
+
+Ejemplo conceptual:
+
+```json
+{
+  "type": "tutorial",
+  "title": "Introducción al tema",
+  "objective": "Objetivo del tutorial.",
+  "sections": [
+    {
+      "title": "Concepto principal",
+      "content": "Explicación sustentada en la fuente."
+    }
+  ]
+}
+```
+
+La estructura definitiva deberá alinearse con el formato aprobado para el MVP.
+
+---
+
+### 5.9 Mapa
+
+Cuando se implemente el formato `Map`, la salida deberá representar conceptos y relaciones de forma estructurada.
+
+Ejemplo conceptual:
+
+```json
+{
+  "type": "map",
+  "title": "Conceptos principales",
+  "nodes": [
+    {
+      "id": "n1",
+      "label": "Concepto principal"
+    }
+  ],
+  "edges": [
+    {
+      "source": "n1",
+      "target": "n2",
+      "label": "relación"
+    }
+  ]
+}
+```
+
+La representación visual del mapa corresponde posteriormente a Frontend.
+
+La responsabilidad de IA-08 será entregar una estructura que permita realizar dicha representación.
+
+---
+
+### 5.10 Fuentes y trazabilidad
+
+La salida deberá conservar las referencias necesarias para identificar el origen del contenido.
+
+Como mínimo, cuando estén disponibles:
+
+```json
+{
+  "sources": [
+    {
+      "document_id": "doc-001",
+      "chunk_id": "doc-001-chunk-003"
+    }
+  ]
+}
+```
+
+La información deberá permitir mantener la relación:
+
+```text
+Contenido
+   ↓
+Chunk
+   ↓
+Documento
+```
+
+Esta trazabilidad será necesaria para auditoría y para mantener la evidencia utilizada durante la validación de IA-07.
+
+---
+
+### 5.11 Información de validación
+
+La respuesta podrá incluir información sobre el resultado de IA-07.
+
+Por ejemplo:
+
+```json
+{
+  "validation": {
+    "status": "approved"
+  }
+}
+```
+
+Si el equipo decide exponer métricas de validación, deberán definirse previamente:
+
+- Nombre del indicador.
+- Tipo de dato.
+- Rango válido.
+- Significado.
+- Umbral utilizado, cuando corresponda.
+
+No deberá exponerse un indicador cuyo significado o método de cálculo no haya sido definido.
+
+---
+
+### 5.12 Estados de respuesta
+
+El contrato deberá contemplar estados controlados para diferenciar situaciones como:
+
+```text
+success
+validation_failed
+insufficient_context
+generation_error
+invalid_output
+```
+
+Los nombres anteriores son una propuesta inicial.
+
+El conjunto definitivo de estados deberá acordarse con Backend y utilizarse de manera consistente en todo el flujo.
+
+---
+
+### 5.13 Principio de compatibilidad
+
+El contrato deberá permitir que:
+
+```text
+Data & IA
+   ↓
+JSON
+   ↓
+Backend
+   ↓
+API
+   ↓
+Frontend
+```
+
+pueda operar sin que cada equipo tenga que reinterpretar o reconstruir la información generada por otro componente.
+
+Cualquier cambio relevante en el schema deberá coordinarse entre Data & IA, Backend y Frontend antes de integrarse al flujo principal.
+
+---
+
+## 6. Validación e integración del contrato
+
+La salida generada por IA-08 deberá validarse antes de ser entregada a Backend.
+
+El objetivo será garantizar que el JSON:
+
+- Cumpla el schema definido.
+- Contenga los campos obligatorios.
+- Mantenga los tipos de datos esperados.
+- Conserve la trazabilidad.
+- Sea coherente con el perfil y formato utilizados.
+- Refleje correctamente el resultado de IA-07.
+- Pueda ser procesado por Backend sin transformaciones ambiguas.
+
+---
+
+### 6.1 Validación del schema
+
+Se deberá validar cada respuesta antes de considerarla una salida válida de Data & IA.
+
+Se deberán comprobar:
+
+- Campos obligatorios.
+- Tipos de datos.
+- Estructuras anidadas.
+- Valores permitidos.
+- Colecciones.
+- Identificadores.
+- Estados.
+- Fuentes.
+- Estructura específica del formato educativo.
+
+Conceptualmente:
+
+```text
+Resultado IA-07
+      ↓
+Construcción JSON
+      ↓
+Validación Schema
+      ↓
+¿Válido?
+ ┌────┴────┐
+ Sí        No
+ ↓          ↓
+Backend   Error controlado
+```
+
+La validación deberá realizarse antes de entregar la respuesta al Backend.
+
+---
+
+### 6.2 Validación de consistencia
+
+Además de validar la estructura, se deberá comprobar la coherencia de la información.
+
+Por ejemplo:
+
+- El `document_id` debe corresponder al documento procesado.
+- El perfil debe coincidir con el utilizado en IA-06.
+- El formato debe coincidir con el solicitado.
+- Las fuentes deben corresponder a los chunks recuperados.
+- El estado de validación debe corresponder al resultado real de IA-07.
+- El contenido debe corresponder al tipo de formato declarado.
+
+No deberá ser posible declarar:
+
+```json
+{
+  "format": "quiz",
+  "content": {
+    "type": "flashcards"
+  }
+}
+```
+
+La validación deberá detectar este tipo de inconsistencia.
+
+---
+
+### 6.3 Validación de trazabilidad
+
+Se deberá comprobar que las referencias de origen permanezcan disponibles en la respuesta final.
+
+La relación esperada será:
+
+```text
+document_id
+      ↓
+chunk_id
+      ↓
+contenido utilizado
+      ↓
+contenido generado
+      ↓
+fuente declarada
+```
+
+Para cada fuente deberá comprobarse, cuando la información esté disponible:
+
+- Existencia del documento.
+- Existencia del chunk.
+- Correspondencia con el contexto recuperado.
+- Relación con el contenido generado.
+
+---
+
+### 6.4 Manejo de errores
+
+IA-08 deberá generar respuestas controladas cuando no pueda construir una salida válida.
+
+Los errores podrán corresponder, entre otros, a:
+
+- Resultado de IA-07 rechazado.
+- JSON inválido.
+- Schema inválido.
+- Campos obligatorios ausentes.
+- Datos inconsistentes.
+- Fuentes inexistentes.
+- Contenido incompatible con el formato.
+- Información insuficiente.
+- Error interno de procesamiento.
+
+Ejemplo conceptual:
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_OUTPUT",
+    "message": "La respuesta generada no cumple el schema esperado."
+  }
+}
+```
+
+Los códigos y mensajes definitivos deberán coordinarse con Backend.
+
+---
+
+### 6.5 Estados de procesamiento
+
+El contrato deberá diferenciar claramente entre:
+
+```text
+Éxito
+   ↓
+Contenido validado y estructurado
+
+Error de validación
+   ↓
+El contenido no cumple los criterios definidos
+
+Contexto insuficiente
+   ↓
+No existe información suficiente para completar la solicitud
+
+Error de generación
+   ↓
+No fue posible obtener una respuesta válida del LLM
+
+Error de integración
+   ↓
+La salida no pudo construirse o validarse correctamente
+```
+
+Los estados definitivos deberán formar parte del contrato acordado con Backend.
+
+---
+
+### 6.6 Contrato IA ↔ Backend
+
+Data & IA y Backend deberán acordar explícitamente:
+
+- Estructura del request cuando corresponda.
+- Estructura de la respuesta.
+- Campos obligatorios.
+- Campos opcionales.
+- Estados.
+- Códigos de error.
+- Estructura de fuentes.
+- Estructura de contenido por formato.
+- Versionado del schema.
+- Reglas de compatibilidad.
+
+El contrato deberá quedar documentado dentro de la implementación correspondiente y mantenerse alineado con el código.
+
+---
+
+### 6.7 Versionado del contrato
+
+El schema deberá contemplar la posibilidad de evolución.
+
+Cuando se realicen cambios incompatibles, deberá definirse una nueva versión del contrato.
+
+Conceptualmente:
+
+```text
+Contrato v1
+     ↓
+Implementación MVP
+     ↓
+Cambios incompatibles
+     ↓
+Contrato v2
+```
+
+Los cambios menores que no rompan consumidores deberán gestionarse de acuerdo con las reglas que establezcan Data & IA y Backend.
+
+---
+
+### 6.8 Prueba de integración
+
+Se deberá realizar una prueba real entre Data & IA y Backend.
+
+El flujo mínimo será:
+
+```text
+Documento
+   ↓
+IA-02
+   ↓
+IA-03
+   ↓
+IA-04
+   ↓
+IA-05
+   ↓
+IA-06
+   ↓
+IA-07
+   ↓
+IA-08
+   ↓
+JSON
+   ↓
+Backend
+```
+
+La prueba deberá comprobar que Backend pueda recibir y procesar la respuesta sin depender de modificaciones manuales.
+
+---
+
+### 6.9 Pruebas de compatibilidad
+
+Se deberán probar al menos:
+
+- Respuesta válida.
+- Cada formato implementado.
+- Cada perfil implementado.
+- Respuesta con múltiples fuentes.
+- Respuesta con una sola fuente.
+- Error de validación.
+- Contexto insuficiente.
+- JSON inválido.
+- Campo obligatorio ausente.
+- Fuente o chunk inexistente.
+- Contenido incompatible con el formato.
+
+Los resultados deberán registrarse.
+
+---
+
+### 6.10 Prueba de escenarios MVP
+
+IA-08 deberá participar en la validación de los escenarios definidos para el MVP:
+
+| Escenario | Perfil | Formato | Validación principal |
+|---|---|---|---|
+| A — VCN OCI | Junior | Flashcards | Estructura + fuentes + adaptación |
+| B — JWT | Senior / Líder Técnico | Quiz | Estructura + respuestas + fuentes |
+| C — Microservicios | Ejecutivo | Mapa + TL;DR | Estructura + síntesis + trazabilidad |
+
+Estos escenarios corresponden a la propuesta del Plan Maestro y deberán ajustarse al alcance final validado por el equipo. :contentReference[oaicite:0]{index=0}
+
+---
+
+### 6.11 Criterios de aceptación
+
+IA-08 deberá demostrar que:
+
+- El JSON cumple el schema definido.
+- Los campos obligatorios están presentes.
+- Los tipos de datos son correctos.
+- El perfil y formato son consistentes.
+- Las fuentes son trazables.
+- El resultado de IA-07 se conserva correctamente.
+- Los errores generan respuestas controladas.
+- Los formatos implementados poseen estructuras diferenciadas.
+- Backend puede consumir la respuesta.
+- Los escenarios del MVP pueden procesarse correctamente.
+- Los resultados de las pruebas quedan registrados.
+
+---
+
+### 6.12 Principio de responsabilidad
+
+La separación entre equipos deberá mantenerse:
+
+| Responsabilidad | Equipo |
+|---|---|
+| Generar contenido | Data & IA — IA-06 |
+| Validar contenido | Data & IA — IA-07 |
+| Estructurar salida IA | Data & IA — IA-08 |
+| Exponer API | Backend |
+| Persistir en OCI | Backend |
+| Orquestar integración E2E | Backend |
+| Consumir y visualizar | Frontend |
+
+IA-08 deberá entregar una salida clara y estable para que Backend pueda integrarla sin asumir responsabilidades propias de Data & IA.
+
+---
+
+## 7. Subtareas
+
+Las actividades de IA-08 se organizarán en las siguientes subtareas:
+
+- **IA-08.1** — Definir contrato de salida Data & IA → Backend.
+- **IA-08.2** — Definir schema JSON común.
+- **IA-08.3** — Definir estructura específica por formato.
+- **IA-08.4** — Definir estructura de fuentes y trazabilidad.
+- **IA-08.5** — Definir estados de procesamiento.
+- **IA-08.6** — Definir códigos y estructura de errores.
+- **IA-08.7** — Implementar serialización JSON.
+- **IA-08.8** — Implementar validación del schema.
+- **IA-08.9** — Implementar validación de consistencia.
+- **IA-08.10** — Implementar validación de trazabilidad.
+- **IA-08.11** — Preparar integración con Backend.
+- **IA-08.12** — Ejecutar pruebas de contrato.
+- **IA-08.13** — Ejecutar pruebas de compatibilidad.
+- **IA-08.14** — Ejecutar escenarios A, B y C del MVP.
+- **IA-08.15** — Registrar resultados, errores y decisiones.
+- **IA-08.16** — Validar contrato final con Backend.
+- **IA-08.17** — Preparar documentación mínima del contrato.
+
+---
+
+## 8. Decisiones pendientes
+
+Antes de considerar IA-08 completamente implementada deberán validarse las siguientes decisiones.
+
+### Contrato JSON
+
+- Schema definitivo.
+- Campos obligatorios.
+- Campos opcionales.
+- Tipos de datos.
+- Estructuras anidadas.
+- Convenciones de nombres.
+- Versionado.
+
+### Contenido
+
+Definir las estructuras definitivas para los formatos incluidos en el MVP.
+
+Como referencia inicial:
+
+- Flashcards.
+- Quiz.
+- TL;DR.
+- Tutorial.
+- Mapa.
+
+No será necesario implementar todos los formatos propuestos si el alcance final del MVP contempla únicamente una parte de ellos.
+
+### Fuentes
+
+Definir:
+
+- Campos mínimos de una fuente.
+- Uso de `document_id`.
+- Uso de `chunk_id`.
+- Información adicional de ubicación.
+- Nivel de trazabilidad que será expuesto a Backend y Frontend.
+
+### Estados
+
+Definir el catálogo definitivo de estados, por ejemplo:
+
+```text
+success
+validation_failed
+insufficient_context
+generation_error
+invalid_output
+```
+
+Los nombres anteriores son una propuesta inicial.
+
+### Errores
+
+Definir:
+
+- Códigos.
+- Mensajes.
+- Campos obligatorios.
+- Errores recuperables.
+- Errores no recuperables.
+
+### Versionado
+
+Definir cómo se gestionarán cambios posteriores al contrato.
+
+---
+
+## 9. Dependencias
+
+### Entrada
+
+**IA-07 — Validación IA**
+
+Debe proporcionar:
+
+- Contenido validado.
+- Estado de validación.
+- Perfil.
+- Formato.
+- Fuentes.
+- Referencias de chunks.
+- Metadata necesaria.
+
+### Integración principal
+
+**Backend**
+
+Deberá acordar con IA-08:
+
+- Contrato.
+- Schema.
+- Estados.
+- Errores.
+- Versionado.
+- Estructuras de contenido.
+
+### Salida
+
+**Frontend**
+
+Consumirá posteriormente la estructura expuesta por Backend.
+
+### Dependencias transversales
+
+IA-08 deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-05 — Retriever / RAG.
+- IA-06 — LLM + Adaptación.
+- IA-07 — Validación IA.
+- Backend — integración y API.
+- Frontend — representación de formatos.
+
+---
+
+## 10. Fuera de alcance
+
+No corresponde a IA-08 implementar directamente:
+
+- Extracción de documentos.
+- Chunking.
+- Embeddings.
+- Vector Store.
+- Retrieval.
+- Generación del contenido.
+- Validación de fidelidad.
+- API pública.
+- Persistencia en OCI.
+- Orquestación completa Backend.
+- Interfaz Frontend.
+- Visualización de contenido.
+- Implementación de componentes interactivos.
+
+IA-08 se concentra en:
+
+```text
+Resultado validado
+       ↓
+Estructuración
+       ↓
+Validación del contrato
+       ↓
+JSON
+       ↓
+Backend
+```
+
+---
+
+## 11. Definition of Done
+
+IA-08 se considerará completada cuando:
+
+- [ ] Se haya definido el contrato Data & IA → Backend.
+- [ ] Se haya definido el schema JSON común.
+- [ ] Se hayan definido las estructuras de los formatos incluidos en el MVP.
+- [ ] Se haya definido la estructura de fuentes y trazabilidad.
+- [ ] Se hayan definido los estados de procesamiento.
+- [ ] Se hayan definido los códigos de error.
+- [ ] Se haya implementado la serialización JSON.
+- [ ] Se haya implementado la validación del schema.
+- [ ] Se haya implementado la validación de consistencia.
+- [ ] Se haya validado la trazabilidad.
+- [ ] Se hayan probado respuestas válidas.
+- [ ] Se hayan probado respuestas inválidas.
+- [ ] Se hayan probado errores y estados controlados.
+- [ ] Se hayan probado los formatos definidos para el MVP.
+- [ ] Se hayan probado los perfiles definidos para el MVP.
+- [ ] Se hayan ejecutado los escenarios A, B y C cuando formen parte del alcance aprobado.
+- [ ] Backend haya validado y aceptado el contrato.
+- [ ] La respuesta pueda ser procesada sin transformaciones manuales.
+- [ ] Los resultados de las pruebas estén registrados.
+- [ ] El contrato tenga documentación mínima para su consumo.
+
+---
+
+## 12. Resultado esperado
+
+Al finalizar IA-08 deberá existir una salida estructurada y validada que permita cerrar el flujo de Data & IA:
+
+```text
+Documento
+    ↓
+IA-02 — Ingestión
+    ↓
+IA-03 — Chunking
+    ↓
+IA-04 — Embeddings + Vector Store
+    ↓
+IA-05 — Retriever / RAG
+    ↓
+IA-06 — LLM + Adaptación
+    ↓
+IA-07 — Validación IA
+    ↓
+IA-08 — Integración + JSON
+    ↓
+JSON validado
+    ↓
+Backend
+```
+
+La salida deberá mantener:
+
+- Contenido educativo.
+- Perfil.
+- Formato.
+- Fuentes.
+- Trazabilidad.
+- Estado de validación.
+- Información necesaria para su procesamiento posterior.
+
+El contrato deberá ser validado conjuntamente con Backend antes de considerarse estable para la integración E2E.
+
+---
+
+

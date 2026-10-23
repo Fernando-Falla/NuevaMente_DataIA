@@ -56,6 +56,12 @@ El **nicho** (`TI`, `Fintech`, `Salud`, `Marketing digital`, `General`) es otro 
 
 Los rechazos ocurren antes de llamar al LLM. Las llamadas a Gemini respetan límites por minuto configurables, pensados para la cuenta gratuita, y ante un `429` esperan y reintentan. Detalle y mediciones: `specs/nueva_mente/ia02_tamano_y_cuota.md` y `.reports/ia02-tamano-y-dominios-2026-10-22.md`.
 
+## Proveedores por etapa
+
+Cada etapa puede usar Gemini o Groq: `IA_PROVIDER_CLASIFICACION` (metadata y clasificación de chunks), `IA_PROVIDER_GENERACION` e `IA_PROVIDER_CRITICO`. Usar otro proveedor en el crítico da una evaluación más independiente del generador y reparte la cuota. Si Groq falla, no hay `GROQ_API_KEY` o el prompt no cabe en su cuota por minuto (8.000 tokens en la cuenta gratuita), la etapa usa Gemini. Los embeddings son **locales por defecto** (`paraphrase-multilingual-mpnet-base-v2` con fastembed, en CPU y sin cuota; la primera ejecución descarga el modelo, ~1 GB, en `.dataia_models/`). Con `DATAIA_EMBEDDINGS=gemini` se usan los de Gemini. Comparación: `.reports/embeddings-comparacion-2026-10-22.md`. Detalle en `specs/nueva_mente/ia_proveedores_y_embeddings.md`.
+
+No se recomienda usar varias cuentas gratuitas para sumar cuota: la cuota de Gemini es por proyecto, no por clave, y los términos del proveedor prohíben eludir sus límites.
+
 ## Stack
 
 |Componente|Tecnología|
@@ -66,7 +72,7 @@ Los rechazos ocurren antes de llamar al LLM. Las llamadas a Gemini respetan lím
 |Validación / DTOs|Pydantic v2|
 |Enriquecimiento LLM|Gemini (`gemini-3.1-flash-lite`, configurable con `GEMINI_MODEL`), clasificación de chunks en lotes, caché local|
 |Chunking|LangChain Text Splitters (Recursive, 800/150) + Custom Structural Splitter sobre el documento completo (`page`, `page_end`, `section`)|
-|Embeddings|Gemini (`models/gemini-embedding-001`)|
+|Embeddings|Locales con fastembed (`paraphrase-multilingual-mpnet-base-v2`) por defecto; Gemini (`models/gemini-embedding-001`) opcional|
 |Vector store|ChromaDB (persistente, colección `nuevamente_docs`, ids estables por `chunk_id`) + registro por documento|
 |Pruebas|pytest (`tests/`)|
 |Orquestación|LangChain|
@@ -176,6 +182,22 @@ GOOGLE_API_KEY=your_google_api_key_here
 # IA_PROVIDER_QUOTA_RETRIES=2
 # DATAIA_EMBEDDING_BATCH_SIZE=20
 
+# Opcional: proveedor de LLM por etapa (gemini o groq). Groq requiere GROQ_API_KEY;
+# si falla o no hay clave, la etapa usa Gemini.
+# GROQ_API_KEY=your_groq_api_key_here
+# GROQ_MODEL=openai/gpt-oss-120b
+# IA_PROVIDER_CLASIFICACION=gemini
+# IA_PROVIDER_GENERACION=gemini
+# IA_PROVIDER_CRITICO=gemini
+# IA_GROQ_RPM=30
+# IA_GROQ_TPM=8000
+# IA_GROQ_MAX_PROMPT_TOKENS=5600
+
+# Opcional: embeddings (local por defecto: fastembed en CPU, sin cuota; o gemini)
+# DATAIA_EMBEDDINGS=local
+# DATAIA_LOCAL_EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+# DATAIA_MODELS_DIR=.dataia_models
+
 # Opcional: persistencia ChromaDB
 # CHROMADB_DIR=.chromadb_data
 # CHROMADB_COLLECTION=nuevamente_docs
@@ -251,6 +273,7 @@ El reporte se guardará automáticamente en `.reports/`.
 |IA-05|Retriever / RAG|Pendiente|
 |IA-06|Generación LLM + perfiles|Pendiente|
 |IA-02b/c|Límites de tamaño, control de cuota y dominios TI, Fintech, Salud y Marketing digital|Completado|
+|Proveedores|Proveedor de LLM por etapa (Gemini/Groq) y embeddings locales por defecto|Completado|
 |IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
 |IA-08|Integración Backend (JSON contrato)|Pendiente|
 

@@ -1,0 +1,1227 @@
+# IA-07 — Validación IA
+
+## 🎯 Objetivo
+
+Implementar y validar la etapa de evaluación del contenido generado por IA-06, verificando que el resultado sea consistente con las fuentes recuperadas mediante RAG y que cumpla las condiciones de calidad definidas para el MVP.
+
+La validación deberá ayudar a detectar:
+
+- Información no sustentada por las fuentes.
+- Afirmaciones contradictorias con el contexto recuperado.
+- Pérdida o alteración del significado técnico.
+- Contenido generado fuera del alcance de la información disponible.
+- Problemas estructurales en la respuesta.
+- Incumplimiento del perfil o formato solicitado.
+
+El resultado de esta actividad deberá determinar si el contenido puede continuar hacia:
+
+➡️ **IA-08 — Integración + JSON**
+
+o si requiere corrección, regeneración o revisión controlada.
+
+---
+
+## 🧩 Alcance
+
+El flujo general de IA-07 será:
+
+```text
+IA-06
+Contenido generado
+        +
+Fuentes utilizadas
+        +
+Chunks recuperados
+        +
+Perfil
+        +
+Formato
+        ↓
+Evaluación de fidelidad
+        ↓
+Evaluación estructural
+        ↓
+Evaluación de adaptación
+        ↓
+Resultado de validación
+        ↓
+ ┌───────────────┬──────────────────┐
+ ↓               ↓                  ↓
+Aprobado     Requiere ajuste    Rechazado
+ ↓               ↓                  ↓
+IA-08        IA-06 / reintento   Estado controlado
+```
+
+La actividad deberá contemplar:
+
+- Definición de los criterios de validación.
+- Comparación del contenido generado con las fuentes.
+- Evaluación de fidelidad.
+- Evaluación de estructura.
+- Evaluación de correspondencia con el perfil.
+- Evaluación de correspondencia con el formato.
+- Identificación de información no sustentada.
+- Generación de un resultado de validación.
+- Coordinación de reintentos cuando corresponda.
+- Conservación de evidencias y trazabilidad.
+- Preparación del resultado para IA-08.
+
+---
+
+## 📥 Entradas
+
+IA-07 recibirá desde IA-06:
+
+### Contenido generado
+
+- Contenido educativo generado.
+- Perfil utilizado.
+- Formato utilizado.
+- Estado de generación.
+
+### Contexto utilizado
+
+- Chunks recuperados.
+- Contenido de los chunks.
+- `document_id`.
+- `chunk_id`.
+- Metadata.
+- Fuentes asociadas.
+
+### Información de configuración
+
+Cuando corresponda, también podrá recibir:
+
+- Prompt o configuración utilizada.
+- Parámetros de generación.
+- Número de intento.
+- Resultado de validaciones estructurales realizadas previamente.
+
+La información recibida deberá permitir establecer la relación:
+
+```text
+Contenido generado
+       ↓
+Contexto utilizado
+       ↓
+Chunks recuperados
+       ↓
+Documento fuente
+```
+
+---
+
+## 📤 Salida
+
+IA-07 deberá generar un resultado estructurado de validación.
+
+Conceptualmente:
+
+```json
+{
+  "status": "aprobado",
+  "score": 0.90,
+  "observaciones": [],
+  "fuentes": [
+    {
+      "document_id": "doc-001",
+      "chunk_id": "doc-001-chunk-003"
+    }
+  ],
+  "requiere_reintento": false
+}
+```
+
+Este ejemplo es conceptual.
+
+El schema definitivo deberá definirse y alinearse con:
+
+- IA-06 — LLM + Adaptación.
+- IA-08 — Integración + JSON.
+- Backend — contrato de integración.
+
+El resultado deberá permitir identificar claramente:
+
+- Estado de la validación.
+- Resultado o puntuación cuando corresponda.
+- Problemas detectados.
+- Fuentes utilizadas para la evaluación.
+- Necesidad de corrección o reintento.
+- Información necesaria para continuar el flujo.
+
+---
+
+## 🔎 Principio de validación
+
+La validación deberá priorizar la correspondencia entre el contenido generado y la información disponible en las fuentes recuperadas.
+
+El principio general será:
+
+```text
+Fuente original
+      ↓
+Contexto recuperado
+      ↓
+Contenido generado
+      ↓
+Validación
+```
+
+La validación no deberá considerar como válida una afirmación únicamente porque sea técnicamente plausible.
+
+Cuando una afirmación no pueda sustentarse en el contexto disponible, deberá identificarse como una posible falta de fidelidad y evaluarse según las reglas que el equipo defina.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+
+**Participación / validación:**
+
+- Fernando Falla — Data Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende definir e implementar los criterios y mecanismos de validación del contenido generado, así como coordinar con IA-06 los posibles reintentos o correcciones.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-06 — LLM + Adaptación**
+
+Proporciona:
+
+- Contenido generado.
+- Perfil.
+- Formato.
+- Contexto utilizado.
+- Fuentes.
+- Referencias de chunks.
+
+### Salida
+
+**IA-08 — Integración + JSON**
+
+Recibirá únicamente resultados que hayan pasado por el proceso de validación definido.
+
+### Dependencias transversales
+
+IA-07 deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-04 — Embeddings + Vector Store.
+- IA-05 — Retriever / RAG.
+- IA-06 — LLM + Adaptación.
+- IA-08 — Integración + JSON.
+- Backend — contrato de salida.
+
+---
+
+## 5. Estrategia de validación de fidelidad
+
+La validación de fidelidad deberá determinar si el contenido generado por IA-06 se encuentra suficientemente sustentado por la información recuperada desde las fuentes.
+
+El objetivo no será determinar si una respuesta es técnicamente correcta en términos generales, sino comprobar si las afirmaciones generadas están respaldadas por el contexto disponible en NuevaMente.
+
+---
+
+### 5.1 Comparación entre generación y fuente
+
+La validación deberá establecer una relación entre:
+
+```text
+Afirmación generada
+        ↓
+Contexto recuperado
+        ↓
+Chunk fuente
+        ↓
+Documento original
+```
+
+Para cada afirmación relevante se deberá evaluar si:
+
+- Está respaldada directamente por la fuente.
+- Puede derivarse razonablemente del contexto.
+- Contradice la información disponible.
+- No puede encontrarse sustento suficiente.
+
+La metodología concreta para realizar esta evaluación deberá ser definida y probada por el equipo Data & IA.
+
+---
+
+### 5.2 Categorías de resultado
+
+Como referencia inicial, una afirmación podrá clasificarse como:
+
+| Categoría | Descripción |
+|---|---|
+| **Sustentada** | La información está respaldada por el contexto recuperado. |
+| **Parcialmente sustentada** | Existe respaldo, pero la afirmación agrega o modifica información que deberá revisarse. |
+| **No sustentada** | No se encuentra evidencia suficiente en el contexto disponible. |
+| **Contradictoria** | La afirmación entra en conflicto con la información de la fuente. |
+
+Estas categorías deberán validarse durante las pruebas y podrán ajustarse según los resultados obtenidos.
+
+---
+
+### 5.3 Anclaje a la fuente
+
+El Plan Maestro propone utilizar un indicador denominado:
+
+`anclaje_fuente_score`
+
+Este indicador busca representar el grado de correspondencia entre el contenido generado y las fuentes utilizadas.
+
+Como referencia inicial, el Plan Maestro propone:
+
+```text
+anclaje_fuente_score >= 0.85
+```
+
+Este valor deberá considerarse inicialmente como una **hipótesis de trabajo**, no como un resultado técnicamente demostrado.
+
+Antes de utilizarlo como criterio definitivo será necesario:
+
+- Definir cómo se calcula.
+- Determinar qué elementos intervienen en el cálculo.
+- Probarlo con los documentos del MVP.
+- Compararlo con una evaluación manual.
+- Analizar falsos positivos.
+- Analizar falsos negativos.
+- Determinar si el umbral propuesto resulta adecuado.
+
+---
+
+### 5.4 Posibles elementos del score
+
+La implementación podrá evaluar, según la estrategia que defina el equipo:
+
+- Correspondencia entre afirmaciones y contexto.
+- Cobertura de las afirmaciones por las fuentes.
+- Contradicciones detectadas.
+- Referencias a chunks utilizados.
+- Coherencia entre contenido generado y contexto.
+- Información agregada que no aparece en las fuentes.
+
+La fórmula definitiva no deberá asumirse antes de realizar las pruebas correspondientes.
+
+---
+
+### 5.5 Validación de contradicciones
+
+Una contradicción deberá tratarse como un problema de alta prioridad.
+
+Ejemplo conceptual:
+
+```text
+Fuente:
+"La VCN permite aislar recursos dentro de una red virtual."
+
+Contenido generado:
+"La VCN elimina la necesidad de utilizar
+controles de seguridad."
+
+Resultado:
+CONTRADICTORIA
+```
+
+El ejemplo es únicamente ilustrativo.
+
+La evaluación real deberá realizarse utilizando el contenido de los documentos procesados por NuevaMente.
+
+Cuando se detecte una contradicción, el contenido no deberá continuar automáticamente como válido.
+
+---
+
+### 5.6 Información no sustentada
+
+Cuando una afirmación no pueda relacionarse con los chunks recuperados, deberá registrarse como información no sustentada.
+
+Esto permitirá diferenciar entre:
+
+- Información realmente presente en la fuente.
+- Inferencias que pueden justificarse.
+- Información que requiere revisión.
+- Posibles alucinaciones.
+
+La ausencia de evidencia en el contexto deberá ser tratada de forma explícita y no asumirse automáticamente como un error del modelo.
+
+---
+
+### 5.7 Cobertura de fuentes
+
+La validación deberá comprobar también que las fuentes utilizadas por IA-06 correspondan realmente al contenido generado.
+
+Se deberá poder responder:
+
+- ¿Qué documento sustenta el contenido?
+- ¿Qué chunks fueron utilizados?
+- ¿Qué afirmaciones pueden relacionarse con esos chunks?
+- ¿Existen afirmaciones sin fuente identificable?
+- ¿Existen fuentes declaradas que no aportaron información relevante?
+
+La trazabilidad generada en IA-03, IA-04, IA-05 e IA-06 deberá mantenerse durante esta etapa.
+
+---
+
+### 5.8 Resultado de la validación
+
+El resultado deberá permitir clasificar el contenido generado en estados controlados.
+
+Como propuesta inicial:
+
+```text
+APROBADO
+   ↓
+El contenido cumple los criterios definidos.
+
+REQUIERE_AJUSTE
+   ↓
+Se detectaron problemas corregibles
+y puede solicitarse una nueva generación.
+
+RECHAZADO
+   ↓
+El contenido presenta problemas que
+impiden continuar automáticamente.
+```
+
+Los criterios exactos para cada estado deberán definirse y validarse mediante las pruebas de IA-07.
+
+---
+
+### 5.9 Coordinación con IA-06
+
+Cuando el resultado sea `REQUIERE_AJUSTE`, IA-07 deberá proporcionar información suficiente para que IA-06 pueda realizar una nueva generación.
+
+La información podrá incluir:
+
+- Problemas detectados.
+- Afirmaciones que requieren revisión.
+- Fuente esperada.
+- Chunks relacionados.
+- Motivo del rechazo o ajuste.
+- Reglas que deben respetarse en el siguiente intento.
+
+El flujo esperado será:
+
+```text
+IA-06
+  ↓
+Contenido generado
+  ↓
+IA-07
+  ↓
+Evaluación
+  ↓
+REQUIERE_AJUSTE
+  ↓
+Retroalimentación
+  ↓
+IA-06
+  ↓
+Nueva generación
+  ↓
+IA-07
+```
+
+El número máximo de ciclos deberá estar limitado para evitar iteraciones indefinidas.
+
+---
+
+### 5.10 Principio de validación
+
+La validación deberá seguir el siguiente principio:
+
+> El contenido educativo puede cambiar su nivel de explicación y presentación, pero no debe alterar deliberadamente el significado técnico sustentado por las fuentes.
+
+Por lo tanto:
+
+```text
+Fidelidad a la fuente
+        ↓
+Contexto recuperado
+        ↓
+Objetivo educativo
+        ↓
+Perfil
+        ↓
+Formato
+        ↓
+Presentación
+```
+
+La adaptación pedagógica no deberá utilizarse como justificación para introducir información que no esté respaldada por las fuentes disponibles.
+
+---
+
+## 6. Validaciones complementarias
+
+La validación de IA-07 deberá complementar la evaluación de fidelidad con controles sobre la estructura y la adaptación del contenido generado.
+
+El objetivo será determinar si el contenido puede continuar hacia IA-08 sin perder consistencia con la solicitud realizada.
+
+---
+
+### 6.1 Validación estructural
+
+Se deberá comprobar que el contenido generado cumpla con la estructura esperada para el formato solicitado.
+
+Se deberán validar, como mínimo:
+
+- Existencia de los campos obligatorios.
+- Tipos de datos esperados.
+- Estructura general de la respuesta.
+- Integridad del contenido.
+- Presencia de las fuentes.
+- Referencias a los chunks cuando correspondan.
+- Correspondencia entre el tipo de contenido solicitado y el contenido generado.
+
+Ejemplo conceptual:
+
+```text
+Solicitud
+   ↓
+Perfil + Formato
+   ↓
+Contenido generado
+   ↓
+Validación estructural
+   ↓
+¿Cumple schema?
+ ┌───────┴────────┐
+Sí                No
+↓                  ↓
+Continuar       Ajustar / Reintentar
+```
+
+Una respuesta que no cumpla la estructura definida no deberá considerarse válida para continuar automáticamente.
+
+---
+
+### 6.2 Validación del perfil
+
+Se deberá comprobar que el contenido generado corresponda al perfil solicitado.
+
+La evaluación podrá considerar:
+
+| Aspecto | Validación |
+|---|---|
+| Lenguaje | Adecuado al nivel del perfil |
+| Profundidad | Compatible con el nivel solicitado |
+| Explicación | Adecuada al conocimiento esperado |
+| Ejemplos | Apropiados para el perfil |
+| Terminología | Comprensible para el perfil |
+| Complejidad | No excesivamente baja o alta para el perfil |
+
+Los criterios concretos deberán validarse con los escenarios del MVP.
+
+Por ejemplo, una adaptación para un perfil Junior podrá requerir mayor explicación de conceptos fundamentales, mientras que una adaptación para un perfil Senior o Líder Técnico podrá requerir mayor profundidad y relaciones técnicas.
+
+Estas características representan criterios de adaptación propuestos y deberán validarse durante las pruebas. :contentReference[oaicite:1]{index=1}
+
+---
+
+### 6.3 Validación del formato
+
+El contenido deberá corresponder al formato educativo solicitado.
+
+Ejemplos:
+
+**Flashcards**
+
+Deberán contener una estructura compatible con preguntas, respuestas, explicaciones y fuentes.
+
+**Quiz**
+
+Deberá contener una estructura compatible con preguntas, opciones cuando correspondan, respuesta y explicación.
+
+**TL;DR**
+
+Deberá presentar una síntesis de los conceptos relevantes.
+
+**Tutorial**
+
+Deberá presentar una estructura progresiva de explicación.
+
+**Mapa**
+
+Deberá representar conceptos y relaciones de forma estructurada para que posteriormente puedan ser visualizados por Frontend.
+
+Los formatos anteriores corresponden a la propuesta de alcance del Plan Maestro y no deberán considerarse todos obligatorios si el equipo define un alcance menor para el MVP. :contentReference[oaicite:2]{index=2}
+
+---
+
+### 6.4 Validación de correspondencia
+
+Además de validar el formato, se deberá comprobar la correspondencia entre:
+
+```text
+Documento
+    ↓
+Contexto recuperado
+    ↓
+Perfil solicitado
+    ↓
+Formato solicitado
+    ↓
+Contenido generado
+```
+
+El contenido deberá representar la información recuperada de acuerdo con el perfil y formato seleccionados.
+
+No deberá ocurrir que:
+
+- El perfil solicitado sea Junior y la respuesta tenga una profundidad incompatible.
+- Se solicite Quiz y se entregue una estructura de Tutorial.
+- Se solicite Flashcards y se genere contenido sin estructura de tarjetas.
+- Se solicite un resumen y se agregue información no sustentada.
+
+---
+
+### 6.5 Validación de fuentes
+
+Se deberá comprobar que las fuentes declaradas en la respuesta:
+
+- Existan.
+- Correspondan a documentos realmente procesados.
+- Coincidan con los chunks recuperados.
+- Sean coherentes con el contenido generado.
+- Mantengan los identificadores definidos durante el pipeline.
+
+La validación deberá mantener la trazabilidad:
+
+```text
+document_id
+     ↓
+chunk_id
+     ↓
+contexto recuperado
+     ↓
+contenido generado
+     ↓
+fuente declarada
+```
+
+Una referencia de fuente inexistente o inconsistente deberá considerarse un error de validación.
+
+---
+
+### 6.6 Validación de información adicional
+
+Se deberá revisar si el contenido generado incorpora información que no proviene del contexto recuperado.
+
+Cuando se detecte información adicional, deberá determinarse si:
+
+- Está sustentada por otro fragmento recuperado.
+- Puede derivarse razonablemente del contexto.
+- No tiene evidencia suficiente.
+- Contradice la fuente.
+
+Esta clasificación deberá alimentar el resultado de validación de fidelidad.
+
+---
+
+### 6.7 Validación de contenido incompleto
+
+También deberá verificarse el caso contrario: que el contenido generado omita información relevante que estaba disponible en el contexto.
+
+La evaluación deberá considerar:
+
+- Conceptos principales omitidos.
+- Información necesaria para comprender el tema.
+- Elementos requeridos por el formato.
+- Información relevante para el perfil solicitado.
+
+La validación no deberá exigir que el contenido reproduzca literalmente todo el contexto.
+
+El objetivo será determinar si la selección y transformación de información mantiene los elementos necesarios para cumplir la solicitud educativa.
+
+---
+
+### 6.8 Resultado combinado
+
+El resultado de IA-07 deberá integrar las diferentes validaciones realizadas.
+
+Conceptualmente:
+
+```text
+                Contenido generado
+                       ↓
+        ┌──────────────┼──────────────┐
+        ↓              ↓              ↓
+   Fidelidad      Estructura      Adaptación
+        ↓              ↓              ↓
+        └──────────────┼──────────────┘
+                       ↓
+              Resultado IA-07
+```
+
+El resultado deberá permitir identificar:
+
+- Estado general.
+- Problemas de fidelidad.
+- Problemas estructurales.
+- Problemas de adaptación.
+- Fuentes involucradas.
+- Necesidad de reintento.
+- Observaciones para IA-06.
+
+---
+
+### 6.9 Criterio para continuar
+
+Un contenido podrá continuar hacia IA-08 cuando cumpla los criterios mínimos definidos para:
+
+- Fidelidad.
+- Estructura.
+- Perfil.
+- Formato.
+- Trazabilidad.
+- Integridad de la respuesta.
+
+Cuando alguno de estos criterios no se cumpla, deberá determinarse si corresponde:
+
+1. Solicitar corrección o regeneración.
+2. Marcar el resultado para revisión.
+3. Rechazar la respuesta.
+
+Los umbrales y reglas definitivas deberán validarse mediante las pruebas de IA-07.
+
+---
+
+## 7. Pruebas y matriz de validación
+
+Las pruebas de IA-07 deberán utilizar documentos técnicos reales del MVP y evaluar de forma controlada el contenido generado por IA-06.
+
+El objetivo será comprobar que el mecanismo de validación pueda identificar correctamente:
+
+- Contenido sustentado.
+- Contenido parcialmente sustentado.
+- Información no sustentada.
+- Contradicciones.
+- Problemas estructurales.
+- Problemas de adaptación.
+- Problemas de trazabilidad.
+
+---
+
+### 7.1 Documentos de prueba
+
+Como referencia inicial se utilizarán documentos técnicos como:
+
+- VCN de OCI.
+- JWT.
+- Microservicios.
+
+Estos documentos permitirán probar diferentes niveles de complejidad y tipos de contenido técnico.
+
+La selección definitiva de documentos deberá ser confirmada por el equipo Data & IA.
+
+---
+
+### 7.2 Casos de validación de fidelidad
+
+Se deberán construir casos donde el contenido generado:
+
+#### Caso A — Correctamente sustentado
+
+La afirmación aparece claramente en uno o más chunks recuperados.
+
+Resultado esperado:
+
+```text
+SUSTENTADA
+```
+
+---
+
+#### Caso B — Parcialmente sustentado
+
+La afirmación contiene información respaldada por la fuente, pero incorpora elementos adicionales que deberán revisarse.
+
+Resultado esperado:
+
+```text
+PARCIALMENTE_SUSTENTADA
+```
+
+---
+
+#### Caso C — No sustentado
+
+La afirmación no puede relacionarse con la información disponible en los chunks recuperados.
+
+Resultado esperado:
+
+```text
+NO_SUSTENTADA
+```
+
+---
+
+#### Caso D — Contradictorio
+
+La afirmación generada contradice explícitamente la información disponible en la fuente.
+
+Resultado esperado:
+
+```text
+CONTRADICTORIA
+```
+
+Estos casos deberán utilizar ejemplos controlados durante las pruebas para comprobar que el mecanismo de validación pueda diferenciarlos.
+
+---
+
+### 7.3 Casos de validación estructural
+
+Se deberán probar respuestas:
+
+- Correctamente estructuradas.
+- Con campos obligatorios ausentes.
+- Con tipos de datos incorrectos.
+- Con JSON inválido.
+- Con estructura diferente a la esperada.
+- Con fuentes inexistentes.
+- Con referencias de chunks incorrectas.
+
+La validación deberá comprobar que los errores sean detectados antes de permitir que la respuesta continúe hacia IA-08.
+
+---
+
+### 7.4 Casos de información insuficiente
+
+Se deberá probar el comportamiento cuando IA-05 proporcione poco contexto para responder.
+
+Casos a considerar:
+
+- Contexto vacío.
+- Contexto parcialmente relacionado.
+- Contexto relacionado pero insuficiente.
+- Contexto correcto pero sin el dato solicitado.
+
+Resultado esperado:
+
+- No considerar automáticamente válida una respuesta generada con información no sustentada.
+- Identificar la insuficiencia del contexto.
+- Generar un estado controlado.
+- Permitir una decisión posterior de corrección, reintento o revisión.
+
+---
+
+### 7.5 Casos de adaptación por perfil
+
+Se deberán ejecutar pruebas utilizando información equivalente y diferentes perfiles.
+
+Como referencia:
+
+| Perfil | Aspectos a evaluar |
+|---|---|
+| Junior | Claridad, explicación de fundamentos, vocabulario comprensible |
+| Senior / Líder Técnico | Profundidad técnica, relaciones, decisiones y trade-offs |
+| Ejecutivo | Síntesis, conceptos clave, impacto y visión general |
+
+Estas características corresponden a la propuesta del Plan Maestro y deberán validarse con el equipo antes de utilizarlas como criterios definitivos. :contentReference[oaicite:1]{index=1}
+
+La prueba deberá comprobar que el cambio de perfil modifica la presentación y profundidad sin alterar el significado técnico de la información.
+
+---
+
+### 7.6 Casos de adaptación por formato
+
+Se deberán ejecutar pruebas utilizando el mismo contexto y diferentes formatos.
+
+Como referencia:
+
+| Formato | Elementos a validar |
+|---|---|
+| Flashcards | Pregunta, respuesta, explicación y fuente |
+| Quiz | Pregunta, opciones, respuesta y explicación |
+| TL;DR | Síntesis de conceptos relevantes |
+| Tutorial | Secuencia progresiva y explicación |
+| Mapa | Conceptos y relaciones estructuradas |
+
+No es necesario implementar todos estos formatos si el equipo define un alcance menor para el MVP.
+
+---
+
+### 7.7 Escenarios principales del MVP
+
+Se deberán utilizar como referencia los tres escenarios definidos en el Plan Maestro:
+
+#### Escenario A
+
+```text
+Documento: VCN de OCI
+Perfil: Junior
+Formato: Flashcards
+```
+
+Se deberá evaluar principalmente:
+
+- Claridad.
+- Explicación de conceptos.
+- Adaptación al perfil.
+- Fidelidad al documento.
+- Ausencia de términos no explicados cuando sean necesarios para comprender el contenido.
+
+El Plan Maestro propone para este escenario un objetivo de `anclaje_fuente_score >= 0.90`; este valor deberá considerarse una referencia de prueba y no un criterio definitivo hasta validar su metodología. :contentReference[oaicite:2]{index=2}
+
+---
+
+#### Escenario B
+
+```text
+Documento: JWT
+Perfil: Senior / Líder Técnico
+Formato: Quiz
+```
+
+Se deberá evaluar principalmente:
+
+- Profundidad técnica.
+- Preguntas situacionales cuando estén sustentadas.
+- Comprensión de conceptos criptográficos presentes en la fuente.
+- Correspondencia entre preguntas y contexto.
+- Fidelidad de las respuestas.
+
+---
+
+#### Escenario C
+
+```text
+Documento: Microservicios
+Perfil: Ejecutivo
+Formato: Mapa + TL;DR
+```
+
+Se deberá evaluar principalmente:
+
+- Capacidad de síntesis.
+- Conceptos principales.
+- Relaciones entre conceptos.
+- Impacto o implicaciones únicamente cuando estén sustentados por la fuente.
+- Correspondencia con el perfil ejecutivo.
+- Estructura necesaria para posterior visualización.
+
+Los tres escenarios anteriores deberán utilizarse como referencia para las pruebas de certificación del MVP y podrán ajustarse según el alcance final aprobado. :contentReference[oaicite:3]{index=3}
+
+---
+
+### 7.8 Pruebas de reintento
+
+Se deberá provocar deliberadamente una respuesta que no cumpla los criterios de validación.
+
+Se deberá comprobar:
+
+```text
+Generación
+    ↓
+Validación
+    ↓
+Falla
+    ↓
+Feedback
+    ↓
+Reintento
+    ↓
+Nueva validación
+```
+
+Se deberá registrar:
+
+- Motivo del primer rechazo.
+- Información enviada a IA-06.
+- Resultado del nuevo intento.
+- Número de intentos.
+- Estado final.
+
+El Plan Maestro propone un máximo de dos reintentos, pero este valor deberá validarse antes de considerarlo definitivo. :contentReference[oaicite:4]{index=4}
+
+---
+
+### 7.9 Matriz de resultados
+
+Cada ejecución deberá registrar como mínimo:
+
+| Campo | Descripción |
+|---|---|
+| Caso | Identificador de la prueba |
+| Documento | Fuente utilizada |
+| Perfil | Perfil solicitado |
+| Formato | Formato solicitado |
+| Resultado IA-06 | Contenido generado |
+| Fidelidad | Resultado de validación |
+| Score | Valor calculado, si aplica |
+| Estructura | Válida / inválida |
+| Adaptación | Válida / requiere ajuste |
+| Fuentes | Fuentes identificadas |
+| Reintentos | Número realizado |
+| Estado final | Aprobado / ajuste / rechazado |
+| Observaciones | Problemas encontrados |
+
+---
+
+### 7.10 Criterios de aceptación
+
+IA-07 deberá demostrar mediante pruebas que puede:
+
+- Detectar contenido no sustentado.
+- Detectar contradicciones.
+- Evaluar correspondencia con las fuentes.
+- Validar la estructura de la respuesta.
+- Validar el perfil solicitado.
+- Validar el formato solicitado.
+- Mantener la trazabilidad hacia las fuentes.
+- Identificar contexto insuficiente.
+- Coordinar reintentos controlados.
+- Generar un resultado estructurado.
+- Entregar información suficiente para que IA-08 determine si puede continuar el flujo.
+
+Los resultados deberán quedar registrados para permitir analizar posteriormente la efectividad del mecanismo de validación.
+
+---
+
+## 8. Subtareas
+
+Las actividades de IA-07 se organizarán en las siguientes subtareas:
+
+- **IA-07.1** — Definir criterios de validación de fidelidad.
+- **IA-07.2** — Definir categorías de resultados de validación.
+- **IA-07.3** — Diseñar estrategia de comparación entre contenido y fuentes.
+- **IA-07.4** — Definir y evaluar `anclaje_fuente_score`.
+- **IA-07.5** — Definir criterios para información no sustentada.
+- **IA-07.6** — Definir criterios para contradicciones.
+- **IA-07.7** — Implementar validación estructural.
+- **IA-07.8** — Implementar validación de perfil.
+- **IA-07.9** — Implementar validación de formato.
+- **IA-07.10** — Implementar validación de fuentes y trazabilidad.
+- **IA-07.11** — Implementar manejo de contexto insuficiente.
+- **IA-07.12** — Implementar retroalimentación hacia IA-06.
+- **IA-07.13** — Implementar control de reintentos.
+- **IA-07.14** — Ejecutar pruebas de fidelidad.
+- **IA-07.15** — Ejecutar pruebas estructurales.
+- **IA-07.16** — Ejecutar pruebas de perfiles y formatos.
+- **IA-07.17** — Ejecutar escenarios A, B y C del MVP.
+- **IA-07.18** — Registrar resultados, errores y limitaciones.
+- **IA-07.19** — Preparar resultado de validación para IA-08.
+
+---
+
+## 9. Decisiones pendientes
+
+Antes de considerar IA-07 completamente implementada deberán validarse las siguientes decisiones:
+
+### Fidelidad
+
+- Método definitivo para comparar contenido y fuentes.
+- Unidad de evaluación: afirmación, bloque, respuesta completa u otra.
+- Criterios para determinar información sustentada.
+- Criterios para determinar información parcialmente sustentada.
+- Criterios para identificar contradicciones.
+- Tratamiento de información no sustentada.
+
+### `anclaje_fuente_score`
+
+- Fórmula de cálculo.
+- Variables consideradas.
+- Método de evaluación.
+- Relación entre score y categorías de validación.
+- Umbral mínimo.
+- Validación mediante casos reales.
+- Comparación con evaluación manual.
+
+El valor de **0.85** propuesto en el Plan Maestro deberá mantenerse como referencia inicial hasta contar con evidencia de las pruebas. :contentReference[oaicite:0]{index=0}
+
+### Reintentos
+
+- Condiciones que activan un reintento.
+- Información enviada nuevamente a IA-06.
+- Máximo de intentos.
+- Comportamiento cuando se agotan los intentos.
+- Estado final después de un fallo persistente.
+
+### Estados
+
+Deberá definirse el comportamiento definitivo de estados como:
+
+- `APROBADO`
+- `REQUIERE_AJUSTE`
+- `RECHAZADO`
+
+También deberá definirse si existirá un estado específico para:
+
+- Contexto insuficiente.
+- Error estructural.
+- Error de trazabilidad.
+- Error de validación.
+
+### Salida
+
+- Schema definitivo del resultado de validación.
+- Campos obligatorios.
+- Score, si corresponde.
+- Observaciones.
+- Fuentes.
+- Referencias a chunks.
+- Número de intento.
+- Estado final.
+
+---
+
+## 10. Dependencias
+
+### Entrada principal
+
+**IA-06 — LLM + Adaptación**
+
+Proporciona:
+
+- Contenido generado.
+- Perfil.
+- Formato.
+- Contexto utilizado.
+- Chunks recuperados.
+- Fuentes.
+- Metadata.
+- Estado de generación.
+
+### Dependencia de trazabilidad
+
+IA-07 depende de que las etapas anteriores mantengan correctamente:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Embedding
+   ↓
+Retrieval
+   ↓
+Contexto
+   ↓
+Contenido generado
+```
+
+Si esta relación se pierde, la validación de fidelidad puede verse limitada.
+
+### Salida principal
+
+**IA-08 — Integración + JSON**
+
+Recibirá el resultado de validación necesario para determinar si el contenido puede continuar hacia la salida final.
+
+### Dependencias transversales
+
+IA-07 deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-04 — Embeddings + Vector Store.
+- IA-05 — Retriever / RAG.
+- IA-06 — LLM + Adaptación.
+- IA-08 — Integración + JSON.
+- Backend — contrato de integración.
+
+---
+
+## 11. Fuera de alcance
+
+No corresponde a IA-07 implementar directamente:
+
+- Ingestión de documentos.
+- Extracción documental.
+- Chunking.
+- Generación de embeddings.
+- Administración del Vector Store.
+- Recuperación semántica.
+- Generación del contenido educativo.
+- Definición de perfiles.
+- Definición de formatos educativos.
+- API Backend.
+- Persistencia en OCI.
+- Interfaz Frontend.
+- Visualización del contenido.
+
+IA-07 se concentra en:
+
+```text
+Contenido generado
+       +
+Fuentes
+       +
+Contexto
+       ↓
+Validación
+       ↓
+Resultado
+       ↓
+Aprobación / Ajuste / Rechazo
+```
+
+---
+
+## 12. Definition of Done
+
+IA-07 se considerará completada cuando:
+
+- [ ] Se hayan definido los criterios de validación de fidelidad.
+- [ ] Se hayan definido las categorías de resultado.
+- [ ] Se haya definido y probado el mecanismo de comparación con las fuentes.
+- [ ] Se haya evaluado el `anclaje_fuente_score`, si se utiliza.
+- [ ] Se haya validado el umbral utilizado, evitando asumirlo únicamente como propuesta.
+- [ ] Se hayan implementado controles para información no sustentada.
+- [ ] Se hayan implementado controles para contradicciones.
+- [ ] Se haya implementado la validación estructural.
+- [ ] Se haya validado la adaptación al perfil.
+- [ ] Se haya validado la correspondencia con el formato.
+- [ ] Se haya validado la trazabilidad de las fuentes.
+- [ ] Se haya probado el comportamiento con contexto insuficiente.
+- [ ] Se hayan implementado reintentos controlados, si corresponden.
+- [ ] Se hayan ejecutado los escenarios A, B y C.
+- [ ] Se hayan registrado los resultados de las pruebas.
+- [ ] Se hayan documentado las limitaciones encontradas.
+- [ ] El resultado de validación tenga una estructura definida.
+- [ ] La salida sea procesable por IA-08.
+
+---
+
+## 13. Resultado esperado
+
+Al finalizar IA-07 deberá existir un mecanismo capaz de evaluar el contenido generado por IA-06 y determinar, mediante criterios definidos y probados, si puede continuar hacia la integración final.
+
+El flujo esperado será:
+
+```text
+IA-06
+Contenido educativo
+       +
+Fuentes
+       +
+Contexto
+       ↓
+IA-07
+Validación
+       ↓
+ ┌───────────────┬──────────────────┐
+ ↓               ↓                  ↓
+APROBADO     REQUIERE_AJUSTE    RECHAZADO
+ ↓               ↓                  ↓
+IA-08        IA-06 / reintento   Estado controlado
+```
+
+La validación deberá priorizar la fidelidad respecto de las fuentes y mantener la trazabilidad necesaria para justificar el resultado.
+
+El contenido no deberá considerarse definitivo únicamente por haber sido generado por el LLM.
+
+---
+
+

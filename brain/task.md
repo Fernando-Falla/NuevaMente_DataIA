@@ -59,7 +59,13 @@
   - [x] Detección de dominio (TI, Fintech, Salud, Marketing digital) con léxico de respaldo; nichos actualizados.
   - [x] Perfiles, consulta y contenido de contingencia neutrales; pautas por dominio.
   - [x] Validación real: `.reports/ia02-tamano-y-dominios-2026-10-22.md`.
-  - [ ] Validar con documentos reales de Fintech, Salud y Marketing digital (hoy son ficticios).
+  - [x] Validar con documentos reales de Fintech, Salud y Marketing digital (6 documentos; ver `tests/fixtures/documentos_reales.md`).
+- [x] **Fase A3: Proveedores y embeddings** (spec `ia_proveedores_y_embeddings.md`)
+  - [x] Proveedor de LLM por etapa (Gemini/Groq) con respaldo en Gemini y desvío por tamaño de prompt.
+  - [x] Crítico en Groq validado (CA1–CA3 de IA-07).
+  - [x] Embeddings locales (fastembed, mpnet) por defecto tras compararlos con Gemini.
+  - [x] Validación con 6 documentos reales de Salud, Fintech y Marketing digital.
+  - Reporte: `.reports/proveedores-y-embeddings-2026-10-22.md`.
 - [ ] **Fase 5: Recuperación (IA-05)**
   - [ ] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`; la similitud queda como apoyo.
 - [ ] **Fase 6: Generación LLM (IA-06)**

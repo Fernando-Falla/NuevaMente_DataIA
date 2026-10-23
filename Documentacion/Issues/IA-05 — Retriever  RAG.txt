@@ -1,0 +1,946 @@
+# IA-05 — Retriever / RAG
+
+## 🎯 Objetivo
+
+Implementar y validar la etapa de recuperación de información de NuevaMente, utilizando el Vector Store generado en IA-04 para recuperar los chunks más relevantes frente a una consulta y construir el contexto que será utilizado posteriormente por el LLM.
+
+El objetivo principal es garantizar que el LLM reciba información relevante y trazable proveniente de los documentos técnicos procesados.
+
+Esta etapa será fundamental para reducir respuestas que no estén sustentadas en la documentación disponible.
+
+---
+
+## 🧩 Alcance
+
+El flujo general de IA-05 será:
+
+```text
+Consulta / necesidad de contenido
+        ↓
+Preparar consulta
+        ↓
+Generar embedding de consulta
+        ↓
+Buscar en Vector Store
+        ↓
+Recuperar chunks relevantes
+        ↓
+Evaluar relevancia
+        ↓
+Construir contexto
+        ↓
+Conservar fuentes y metadata
+        ↓
+IA-06 — LLM + Adaptación
+```
+
+La actividad deberá contemplar:
+
+- Recepción de la consulta o necesidad de generación.
+- Generación del embedding de la consulta.
+- Búsqueda semántica en el Vector Store.
+- Recuperación de los chunks más relevantes.
+- Evaluación de relevancia.
+- Aplicación de criterios de similitud.
+- Control de cantidad de resultados recuperados.
+- Eliminación o control de resultados redundantes cuando corresponda.
+- Construcción del contexto para el LLM.
+- Conservación de metadata y fuentes.
+- Preparación de la información para IA-06.
+
+La estrategia definitiva de recuperación deberá validarse mediante pruebas con los documentos técnicos del MVP.
+
+---
+
+## 📥 Entrada
+
+IA-05 recibirá:
+
+- Consulta o necesidad de información.
+- Perfil educativo seleccionado.
+- Formato educativo seleccionado.
+- Información del documento procesado cuando corresponda.
+- Vector Store generado por IA-04.
+- Embedding de la consulta o mecanismo equivalente.
+- Metadata disponible.
+
+La consulta deberá representar la información necesaria para determinar qué partes del documento son relevantes para la generación del contenido educativo.
+
+---
+
+## 📤 Salida
+
+IA-05 deberá entregar a IA-06:
+
+- Contexto recuperado.
+- Chunks relevantes.
+- `document_id`.
+- `chunk_id`.
+- Metadata disponible.
+- Fuentes de origen.
+- Información de relevancia o similitud cuando esté disponible.
+
+Conceptualmente:
+
+```json
+{
+  "context": [
+    {
+      "document_id": "doc-001",
+      "chunk_id": "doc-001-chunk-003",
+      "content": "Contenido relevante...",
+      "source": "vcn.pdf",
+      "page": 4,
+      "section": "Redes Virtuales"
+    }
+  ]
+}
+```
+
+El ejemplo es conceptual.
+
+El schema definitivo deberá alinearse con:
+
+- IA-06 — LLM + Adaptación.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+
+---
+
+## 🔎 Principio de recuperación
+
+La recuperación deberá priorizar información semánticamente relacionada con la consulta y no únicamente coincidencias literales de palabras.
+
+El objetivo es obtener el contexto necesario para responder o generar contenido educativo a partir de la documentación disponible.
+
+La recuperación deberá mantener la relación:
+
+```text
+Consulta
+   ↓
+Resultados relevantes
+   ↓
+Chunks
+   ↓
+Documento original
+```
+
+Esto permitirá que las etapas posteriores puedan identificar la fuente utilizada para generar el contenido.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+
+**Participación / validación:**
+
+- Fernando Falla — Data Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende diseñar, implementar y validar la estrategia de recuperación de contexto para el pipeline RAG.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-04 — Embeddings + Vector Store**
+
+Proporciona:
+
+- Embeddings.
+- Vector Store.
+- Chunks almacenados.
+- Metadata.
+- Información de trazabilidad.
+
+### Salida
+
+**IA-06 — LLM + Adaptación**
+
+Recibirá el contexto recuperado para generar el contenido educativo adaptado.
+
+### Dependencias de validación
+
+**IA-07 — Validación IA**
+
+Utilizará la información recuperada y sus fuentes para validar posteriormente la fidelidad del contenido generado.
+
+**IA-08 — Integración + JSON**
+
+Deberá conservar la información necesaria para entregar las fuentes y resultados en el formato definido por el sistema.
+
+### Dependencias transversales
+
+La estrategia de RAG deberá mantenerse alineada con:
+
+- Perfil educativo.
+- Formato educativo.
+- Prompts utilizados por IA-06.
+- Criterios de fidelidad de IA-07.
+- Contrato de salida definido en IA-08.
+
+---
+
+## 5. Estrategia de recuperación RAG
+
+### 5.1 Generación de la consulta
+
+La consulta utilizada para recuperar información deberá representar la necesidad de contenido que posteriormente será procesada por IA-06.
+
+La consulta podrá considerar, según el flujo definido:
+
+- Tema o necesidad de aprendizaje.
+- Perfil educativo.
+- Formato educativo.
+- Documento o conjunto de documentos disponibles.
+- Información adicional necesaria para contextualizar la búsqueda.
+
+La construcción definitiva de la consulta deberá validarse con los casos de uso del MVP.
+
+---
+
+### 5.2 Búsqueda semántica
+
+La recuperación deberá utilizar búsqueda semántica sobre los embeddings almacenados en IA-04.
+
+El flujo será:
+
+```text
+Consulta
+   ↓
+Embedding de consulta
+   ↓
+Vector Store
+   ↓
+Comparación semántica
+   ↓
+Resultados candidatos
+```
+
+Los resultados deberán ordenarse de acuerdo con su relevancia para la consulta.
+
+La métrica de similitud dependerá de la tecnología seleccionada para embeddings y Vector Store.
+
+---
+
+### 5.3 Cantidad de resultados recuperados
+
+La estrategia deberá definir la cantidad de chunks que serán recuperados para cada consulta.
+
+Se deberá evaluar un parámetro `top_k` que permita controlar la cantidad de resultados.
+
+Ejemplo conceptual:
+
+```text
+Consulta
+   ↓
+Vector Store
+   ↓
+Top-K resultados
+   ↓
+Evaluación de relevancia
+   ↓
+Contexto final
+```
+
+El valor definitivo de `top_k` deberá determinarse mediante pruebas.
+
+Un valor demasiado bajo podría provocar pérdida de contexto.
+
+Un valor demasiado alto podría introducir información irrelevante, redundante o aumentar innecesariamente el contexto enviado al LLM.
+
+---
+
+### 5.4 Umbral de similitud
+
+El PRD de referencia propone inicialmente un umbral de similitud semántica:
+
+```text
+similarity >= 0.75
+```
+
+Este valor deberá considerarse una configuración inicial para pruebas y no una decisión definitiva.
+
+Se deberá evaluar si el umbral permite obtener un equilibrio adecuado entre:
+
+- Relevancia.
+- Cobertura.
+- Ruido.
+- Cantidad de resultados.
+- Calidad del contexto entregado al LLM.
+
+La métrica y el valor final deberán ser compatibles con el modelo de embeddings y Vector Store seleccionados.
+
+---
+
+### 5.5 Filtrado de resultados
+
+Cuando sea necesario, la recuperación podrá utilizar metadata para limitar los resultados.
+
+Los filtros podrán considerar, según disponibilidad:
+
+- `document_id`
+- Tipo de documento.
+- Fuente.
+- Sección.
+- Otros atributos de metadata.
+
+El filtrado deberá utilizarse únicamente cuando aporte valor a la recuperación y no deberá eliminar información relevante de forma injustificada.
+
+---
+
+### 5.6 Control de redundancia
+
+Los resultados recuperados podrán contener chunks con información parcialmente repetida debido al overlap utilizado en IA-03.
+
+IA-05 deberá evaluar si es necesario:
+
+- Eliminar resultados duplicados.
+- Reducir redundancia.
+- Mantener chunks relacionados cuando aporten contexto.
+- Ordenar los resultados de forma coherente.
+
+El objetivo es construir un contexto útil sin incorporar contenido innecesariamente repetitivo.
+
+---
+
+### 5.7 Construcción del contexto
+
+Los resultados seleccionados deberán transformarse en un contexto estructurado para IA-06.
+
+Conceptualmente:
+
+```text
+Resultados recuperados
+        ↓
+Filtrar resultados
+        ↓
+Ordenar resultados
+        ↓
+Conservar metadata
+        ↓
+Construir contexto
+        ↓
+IA-06 — LLM + Adaptación
+```
+
+El contexto deberá mantener la información necesaria para identificar las fuentes utilizadas.
+
+---
+
+### 5.8 Contexto insuficiente
+
+IA-05 deberá contemplar el caso en que la búsqueda no encuentre información suficientemente relevante.
+
+Por ejemplo:
+
+```text
+Consulta
+   ↓
+Búsqueda
+   ↓
+Sin resultados relevantes
+```
+
+En este escenario, el sistema no deberá inventar información para completar el contexto.
+
+Deberá devolver un estado controlado que permita a las etapas posteriores decidir cómo proceder.
+
+Ejemplo conceptual:
+
+```json
+{
+  "status": "sin_contexto_suficiente",
+  "results": [],
+  "message": "No se encontró información suficiente en los documentos disponibles para responder a la consulta."
+}
+```
+
+El comportamiento posterior de este estado deberá coordinarse con IA-06 y el contrato definido en IA-08.
+
+---
+
+### 5.9 Contexto parcial
+
+También deberá contemplarse el caso en que existan resultados relacionados, pero la información recuperada no sea suficiente para cubrir completamente la consulta.
+
+En este caso, IA-05 deberá:
+
+- Entregar los resultados encontrados.
+- Mantener sus fuentes.
+- Indicar que el contexto puede ser insuficiente cuando sea posible determinarlo.
+- Evitar completar artificialmente la información.
+
+IA-06 deberá utilizar esta información de acuerdo con las reglas definidas para generación y adaptación.
+
+---
+
+### 5.10 Trazabilidad del contexto
+
+Cada fragmento incluido en el contexto deberá conservar, cuando esté disponible:
+
+- `document_id`
+- `chunk_id`
+- Fuente.
+- Página.
+- Sección.
+- Contenido.
+- Información de similitud.
+
+La relación deberá mantenerse:
+
+```text
+Consulta
+   ↓
+Resultado recuperado
+   ↓
+Chunk
+   ↓
+Documento
+   ↓
+Fuente
+```
+
+Esta información será necesaria posteriormente para IA-07 — Validación IA.
+
+---
+
+### 5.11 Principio de fidelidad
+
+El Retriever deberá priorizar la recuperación de información existente en las fuentes disponibles.
+
+Cuando no exista información suficiente para sustentar una consulta, el sistema deberá comunicar esta situación en lugar de generar contexto artificial.
+
+La responsabilidad de IA-05 es recuperar y organizar la información.
+
+La generación del contenido educativo corresponde a IA-06 y la validación de fidelidad corresponde a IA-07.
+
+---
+
+### 5.12 Configuración inicial propuesta
+
+Como punto de partida para las pruebas podrán evaluarse:
+
+| Parámetro | Propuesta inicial |
+|---|---|
+| Método | Búsqueda semántica |
+| `top_k` | Por definir mediante pruebas |
+| Umbral de similitud | `0.75` como referencia inicial |
+| Filtros | Metadata cuando sea necesario |
+| Redundancia | Evaluar reducción de duplicados |
+| Contexto | Chunks relevantes + metadata |
+| Sin resultados | Estado controlado |
+
+Estos valores y estrategias deberán validarse con los documentos y escenarios del MVP antes de considerarse definitivos.
+
+---
+
+## 6. Validación y pruebas del Retriever / RAG
+
+La estrategia de recuperación deberá validarse utilizando los documentos y escenarios definidos para el MVP.
+
+El objetivo es comprobar que el Retriever:
+
+- Encuentra información relevante.
+- Recupera suficiente contexto.
+- Mantiene la trazabilidad.
+- Evita introducir información irrelevante.
+- Maneja correctamente consultas sin resultados suficientes.
+- Entrega a IA-06 un contexto utilizable para la generación del contenido educativo.
+
+---
+
+### 6.1 Documentos de prueba
+
+Las pruebas deberán utilizar documentos técnicos representativos, incluyendo como referencia:
+
+- VCN de OCI.
+- JWT.
+- Microservicios.
+
+Los documentos deberán contener conceptos que permitan formular consultas específicas y evaluar si el Retriever encuentra los fragmentos correspondientes.
+
+---
+
+### 6.2 Consultas de prueba
+
+Se deberán definir consultas relacionadas directamente con el contenido de los documentos.
+
+Las consultas deberán cubrir diferentes tipos de necesidad:
+
+- Definiciones.
+- Características.
+- Conceptos relacionados.
+- Casos de uso.
+- Comparaciones cuando el documento las contenga.
+- Procedimientos cuando estén documentados.
+- Preguntas orientadas a diferentes perfiles educativos.
+
+Ejemplo:
+
+```text
+Documento: VCN de OCI
+
+Consulta:
+¿Qué es una VCN y para qué se utiliza?
+
+Resultado esperado:
+Recuperar chunks que expliquen la definición,
+propósito y características principales de una VCN.
+```
+
+---
+
+### 6.3 Evaluación de relevancia
+
+Cada resultado recuperado deberá evaluarse para determinar si realmente aporta información útil para la consulta.
+
+Se deberá registrar:
+
+- Consulta.
+- Documento esperado.
+- Chunks recuperados.
+- Orden de recuperación.
+- Nivel de relevancia observado.
+- Similitud cuando esté disponible.
+- Fuente.
+- Página o sección cuando esté disponible.
+
+La evaluación deberá permitir identificar:
+
+- Resultados relevantes.
+- Resultados parcialmente relevantes.
+- Resultados irrelevantes.
+- Información faltante.
+- Información redundante.
+
+---
+
+### 6.4 Evaluación de `top_k`
+
+Se deberá probar más de una configuración de `top_k` para determinar cuál proporciona un contexto adecuado.
+
+Por ejemplo:
+
+```text
+Consulta
+   ↓
+top_k = X
+   ↓
+Resultados
+   ↓
+Evaluación
+
+Consulta
+   ↓
+top_k = Y
+   ↓
+Resultados
+   ↓
+Evaluación
+```
+
+La comparación deberá considerar:
+
+- Cobertura de información.
+- Relevancia.
+- Redundancia.
+- Cantidad de contexto.
+- Impacto sobre el procesamiento posterior.
+
+El valor definitivo deberá seleccionarse con base en los resultados obtenidos.
+
+---
+
+### 6.5 Evaluación del umbral de similitud
+
+El valor inicial de referencia será:
+
+```text
+similarity >= 0.75
+```
+
+Se deberá comprobar mediante pruebas qué sucede cuando:
+
+- El resultado supera claramente el umbral.
+- El resultado se encuentra cerca del umbral.
+- Ningún resultado alcanza el umbral.
+
+Se deberá evaluar si el umbral:
+
+- Elimina resultados relevantes.
+- Permite resultados irrelevantes.
+- Mantiene una cobertura adecuada.
+- Funciona consistentemente con el modelo de embeddings seleccionado.
+
+El valor final deberá registrarse como decisión técnica basada en evidencia.
+
+---
+
+### 6.6 Caso de consulta sin contexto suficiente
+
+Se deberá probar una consulta cuya respuesta no esté presente en los documentos disponibles.
+
+Ejemplo:
+
+```text
+Documento:
+VCN de OCI
+
+Consulta:
+¿Cómo configurar un producto que no aparece
+en la documentación?
+```
+
+Resultado esperado:
+
+```json
+{
+  "status": "sin_contexto_suficiente",
+  "results": []
+}
+```
+
+El sistema no deberá generar chunks inexistentes ni completar artificialmente el contexto.
+
+---
+
+### 6.7 Caso de contexto parcial
+
+Se deberá probar una consulta cuya respuesta esté parcialmente cubierta por los documentos.
+
+Resultado esperado:
+
+- Recuperar los chunks disponibles.
+- Mantener sus fuentes.
+- Identificar que el contexto puede ser parcial.
+- No agregar información que no provenga de los documentos recuperados.
+
+Este caso deberá quedar registrado para su posterior tratamiento por IA-06 e IA-07.
+
+---
+
+### 6.8 Evaluación de redundancia
+
+Se deberá comprobar el comportamiento cuando varios chunks recuperados contienen información similar debido al overlap definido en IA-03.
+
+Se deberá evaluar si resulta conveniente:
+
+- Mantener los chunks.
+- Reducir duplicados.
+- Reordenar resultados.
+- Combinar información relacionada.
+
+La decisión deberá basarse en el impacto sobre la calidad del contexto.
+
+---
+
+### 6.9 Validación de trazabilidad
+
+Para cada resultado recuperado deberá ser posible identificar:
+
+```text
+Consulta
+   ↓
+Resultado
+   ↓
+chunk_id
+   ↓
+document_id
+   ↓
+Fuente original
+```
+
+Se deberá comprobar que la metadata no se pierda durante la recuperación.
+
+La prueba deberá verificar, cuando estén disponibles:
+
+- `document_id`
+- `chunk_id`
+- Fuente.
+- Página.
+- Sección.
+- Contenido.
+- Similitud.
+
+---
+
+### 6.10 Validación del contexto entregado a IA-06
+
+El resultado final del Retriever deberá evaluarse desde la perspectiva de la siguiente etapa.
+
+IA-06 deberá recibir:
+
+- Contexto relevante.
+- Identificación de los chunks.
+- Fuentes.
+- Metadata disponible.
+- Información suficiente para generar el contenido solicitado.
+
+El contexto deberá ser suficientemente claro para que el LLM pueda distinguir entre:
+
+- Información proveniente de la fuente.
+- Instrucciones de adaptación.
+- Perfil educativo.
+- Formato solicitado.
+
+---
+
+### 6.11 Escenarios del MVP
+
+La validación deberá considerar los escenarios de adaptación definidos para NuevaMente.
+
+Como referencia:
+
+| Escenario | Documento | Perfil | Formato |
+|---|---|---|---|
+| A | VCN OCI | Junior | Flashcards |
+| B | JWT | Senior / Líder Técnico | Quiz |
+| C | Microservicios | Ejecutivo | Mapa + TL;DR |
+
+Estos escenarios deberán utilizarse como referencia de validación y podrán ajustarse según las decisiones finales del equipo.
+
+El objetivo de IA-05 será garantizar que, independientemente del perfil o formato solicitado, el contexto recuperado corresponda al contenido técnico disponible en la fuente.
+
+---
+
+### 6.12 Registro de resultados
+
+Cada prueba deberá registrar como mínimo:
+
+- Identificador de la prueba.
+- Documento utilizado.
+- Consulta.
+- Configuración utilizada.
+- `top_k`.
+- Umbral de similitud.
+- Resultados recuperados.
+- Relevancia observada.
+- Problemas encontrados.
+- Ajustes realizados.
+- Resultado final.
+
+Esto permitirá justificar la configuración seleccionada para el Retriever.
+
+---
+
+### 6.13 Criterios de aceptación
+
+IA-05 podrá considerarse validada cuando:
+
+- Las consultas puedan procesarse correctamente.
+- Se recuperen chunks relevantes.
+- El contexto conserve suficiente información.
+- `top_k` haya sido evaluado.
+- El umbral de similitud haya sido evaluado.
+- Los resultados irrelevantes puedan controlarse.
+- La redundancia haya sido evaluada.
+- Las consultas sin contexto suficiente tengan un comportamiento controlado.
+- Los casos de contexto parcial hayan sido evaluados.
+- La trazabilidad se conserve.
+- IA-06 pueda recibir un contexto estructurado y utilizable.
+- Los resultados de las pruebas estén registrados.
+
+La validación deberá demostrar que el Retriever proporciona una base adecuada para la generación del contenido educativo y para la posterior validación de fidelidad.
+
+---
+
+## 7. Subtareas
+
+Las actividades principales de IA-05 serán:
+
+- **IA-05.1 — Definir estrategia de recuperación**
+  - Definir el flujo de búsqueda semántica.
+  - Definir criterios de selección de resultados.
+  - Definir comportamiento ante resultados insuficientes.
+
+- **IA-05.2 — Implementar consulta semántica**
+  - Preparar la consulta.
+  - Generar el embedding de consulta.
+  - Ejecutar la búsqueda en el Vector Store.
+
+- **IA-05.3 — Implementar selección de resultados**
+  - Configurar `top_k`.
+  - Evaluar similitud.
+  - Aplicar el umbral definido.
+  - Controlar resultados redundantes.
+
+- **IA-05.4 — Implementar construcción del contexto**
+  - Seleccionar los chunks relevantes.
+  - Ordenar los resultados cuando corresponda.
+  - Conservar metadata y fuentes.
+  - Preparar el contexto para IA-06.
+
+- **IA-05.5 — Implementar manejo de resultados insuficientes**
+  - Sin resultados.
+  - Contexto parcial.
+  - Resultados con baja relevancia.
+
+- **IA-05.6 — Implementar trazabilidad**
+  - Mantener `document_id`.
+  - Mantener `chunk_id`.
+  - Conservar fuente, página y sección cuando estén disponibles.
+
+- **IA-05.7 — Ejecutar pruebas del Retriever**
+  - Utilizar documentos técnicos del MVP.
+  - Ejecutar consultas representativas.
+  - Evaluar relevancia de los resultados.
+
+- **IA-05.8 — Evaluar parámetros**
+  - Probar diferentes valores de `top_k`.
+  - Evaluar el umbral de similitud.
+  - Evaluar redundancia y cobertura.
+
+- **IA-05.9 — Validar integración con IA-06**
+  - Verificar que el contexto generado sea utilizable por el LLM.
+  - Comprobar que las fuentes acompañen al contexto.
+
+- **IA-05.10 — Registrar resultados y decisiones**
+  - Documentar configuración final.
+  - Registrar problemas encontrados.
+  - Registrar limitaciones y decisiones técnicas.
+
+---
+
+## 8. Decisiones pendientes
+
+Antes de considerar definitiva la implementación deberán validarse:
+
+- Método definitivo de búsqueda semántica.
+- Modelo utilizado para el embedding de la consulta.
+- Valor de `top_k`.
+- Umbral de similitud.
+- Métrica de similitud utilizada.
+- Estrategia de filtrado por metadata.
+- Estrategia para reducir resultados redundantes.
+- Orden de los chunks recuperados.
+- Cantidad máxima de contexto entregado a IA-06.
+- Comportamiento cuando no existe contexto suficiente.
+- Comportamiento ante contexto parcial.
+- Estructura definitiva del contexto entregado al LLM.
+- Información de fuente que deberá acompañar cada resultado.
+
+El valor `0.75` de similitud y cualquier valor inicial de `top_k` deberán considerarse parámetros de prueba hasta que Data & IA valide su comportamiento.
+
+---
+
+## 9. Dependencias
+
+### Dependencia de entrada
+
+**IA-04 — Embeddings + Vector Store**
+
+Debe proporcionar:
+
+- Vector Store funcional.
+- Embeddings.
+- Chunks.
+- Metadata.
+- Trazabilidad.
+
+### Dependencia de salida
+
+**IA-06 — LLM + Adaptación**
+
+Recibirá el contexto recuperado para generar el contenido educativo.
+
+### Dependencias de validación
+
+**IA-07 — Validación IA**
+
+Utilizará las fuentes y el contexto recuperado para comprobar posteriormente la fidelidad del contenido generado.
+
+**IA-08 — Integración + JSON**
+
+Deberá mantener la información necesaria para representar fuentes y resultados en la salida final.
+
+### Dependencias transversales
+
+La estrategia de recuperación deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-04 — Embeddings + Vector Store.
+- IA-06 — LLM + Adaptación.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+
+---
+
+## 10. Fuera de alcance
+
+IA-05 no contempla:
+
+- Generación de embeddings de documentos.
+- Implementación del Vector Store.
+- Generación del contenido educativo.
+- Adaptación pedagógica.
+- Diseño de prompts finales.
+- Implementación del LLM.
+- Validación de fidelidad del contenido generado.
+- Construcción del JSON final de la aplicación.
+- Interfaz de usuario.
+
+Estas responsabilidades corresponden a las actividades posteriores o a otros equipos.
+
+---
+
+## 11. Definition of Done
+
+IA-05 podrá considerarse completada cuando:
+
+- [ ] La estrategia de recuperación esté definida.
+- [ ] La búsqueda semántica esté implementada.
+- [ ] La consulta pueda transformarse en una búsqueda compatible con IA-04.
+- [ ] `top_k` haya sido evaluado.
+- [ ] El umbral de similitud haya sido evaluado.
+- [ ] Los resultados puedan ordenarse por relevancia.
+- [ ] Se haya evaluado el control de redundancia.
+- [ ] El contexto pueda construirse a partir de los resultados relevantes.
+- [ ] Cada resultado conserve su trazabilidad.
+- [ ] Se pueda identificar documento y chunk de origen.
+- [ ] Exista un comportamiento controlado ante ausencia de contexto.
+- [ ] Se haya evaluado el comportamiento ante contexto parcial.
+- [ ] Se hayan ejecutado consultas de prueba.
+- [ ] Se hayan utilizado documentos técnicos representativos.
+- [ ] Los resultados de las pruebas estén registrados.
+- [ ] La salida sea compatible con IA-06.
+- [ ] Data & IA haya validado la estrategia.
+
+---
+
+## 12. Resultado esperado
+
+Al finalizar IA-05, NuevaMente deberá ser capaz de transformar una consulta en un contexto técnico relevante y trazable para el LLM.
+
+El resultado conceptual será:
+
+```text
+Consulta
+   ↓
+Embedding de consulta
+   ↓
+Vector Store
+   ↓
+Búsqueda semántica
+   ↓
+Resultados relevantes
+   ↓
+Filtros / relevancia / redundancia
+   ↓
+Contexto + Fuentes
+   ↓
+IA-06 — LLM + Adaptación
+```
+
+El Retriever no deberá generar información nueva.
+
+Su función será recuperar y organizar información existente en las fuentes para que IA-06 pueda utilizarla durante la generación del contenido educativo.
+
+---
+

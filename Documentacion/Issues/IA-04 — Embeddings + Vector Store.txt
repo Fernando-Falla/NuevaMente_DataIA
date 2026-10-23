@@ -1,0 +1,599 @@
+# IA-04 — Embeddings + Vector Store
+
+## 🎯 Objetivo
+
+Implementar y validar la generación de embeddings a partir de los chunks preparados por IA-03 y su almacenamiento en un Vector Store que permita realizar posteriormente búsquedas semánticas para el pipeline RAG.
+
+Esta actividad deberá garantizar que:
+
+- Los chunks puedan transformarse en representaciones vectoriales.
+- Los embeddings mantengan la relación con el contenido y su metadata.
+- Los vectores puedan almacenarse y consultarse posteriormente.
+- La información necesaria para la trazabilidad se conserve.
+- La salida sea compatible con IA-05 — Retriever / RAG.
+
+---
+
+## 🧩 Alcance
+
+El flujo general de IA-04 será:
+
+```text
+IA-03
+Chunks + Metadata
+        ↓
+Preparar contenido
+        ↓
+Generar embeddings
+        ↓
+Validar embeddings
+        ↓
+Almacenar vectores
+        ↓
+Asociar metadata
+        ↓
+Vector Store
+        ↓
+IA-05 — Retriever / RAG
+```
+
+La actividad deberá contemplar:
+
+- Selección y evaluación del modelo de embeddings.
+- Configuración de la generación de embeddings.
+- Transformación de los chunks en vectores.
+- Almacenamiento de los embeddings.
+- Conservación de metadata.
+- Identificación de los vectores.
+- Persistencia del Vector Store.
+- Validación de consultas semánticas.
+- Mantenimiento de la trazabilidad hacia el documento original.
+
+Las tecnologías y configuraciones propuestas deberán considerarse iniciales hasta ser evaluadas con los documentos del MVP.
+
+---
+
+## 📥 Entrada
+
+IA-04 recibirá desde IA-03:
+
+- `document_id`
+- `chunk_id`
+- Contenido del chunk.
+- Fuente del documento.
+- Tipo de documento.
+- Página cuando esté disponible.
+- Sección cuando esté disponible.
+- Metadata adicional generada durante el procesamiento.
+
+La información de cada chunk deberá conservarse durante la generación y almacenamiento del embedding.
+
+---
+
+## 📤 Salida
+
+IA-04 deberá proporcionar un Vector Store que contenga:
+
+- Embedding generado.
+- Identificador del chunk.
+- Identificador del documento.
+- Contenido o referencia al contenido del chunk.
+- Metadata asociada.
+- Información necesaria para recuperar posteriormente la fuente.
+
+La salida deberá permitir que IA-05 pueda realizar una búsqueda semántica y obtener resultados que incluyan tanto el contenido relevante como su metadata.
+
+La relación esperada será:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Embedding
+   ↓
+Vector Store
+   ↓
+Resultado recuperado
+   ↓
+Fuente
+```
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Fernando Falla — Data Engineer
+
+**Participación / validación:**
+
+- Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende implementar y validar la generación de embeddings, configurar el almacenamiento vectorial y garantizar la trazabilidad necesaria para las etapas posteriores del pipeline.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-03 — Chunking + Metadata**
+
+Proporciona los chunks preparados y la metadata necesaria para generar embeddings.
+
+### Salida
+
+**IA-05 — Retriever / RAG**
+
+Utilizará el Vector Store para realizar búsquedas semánticas y recuperar el contexto relevante.
+
+### Dependencias transversales
+
+La implementación deberá mantenerse alineada con:
+
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+- Backend — integración con el pipeline general cuando corresponda.
+---
+
+## 5. Estrategia de Embeddings y Vector Store
+
+### 5.1 Generación de embeddings
+
+Cada chunk generado por IA-03 deberá transformarse en una representación vectorial mediante un modelo de embeddings.
+
+El embedding deberá representar semánticamente el contenido del chunk para permitir posteriormente búsquedas por similitud.
+
+El proceso conceptual será:
+
+```text
+Chunk
+  ↓
+Modelo de Embeddings
+  ↓
+Vector
+  ↓
+Asociar Metadata
+  ↓
+Vector Store
+```
+
+La selección del modelo de embeddings deberá considerar como mínimo:
+
+- Calidad de representación semántica.
+- Compatibilidad con el idioma de los documentos.
+- Dimensionalidad del vector.
+- Tiempo de generación.
+- Consumo de recursos.
+- Disponibilidad de la solución.
+- Límites de uso o cuota cuando corresponda.
+- Compatibilidad con el Vector Store seleccionado.
+- Posibilidad de utilizarlo dentro de las restricciones del MVP.
+
+La selección definitiva deberá validarse mediante pruebas con los documentos técnicos del proyecto.
+
+---
+
+### 5.2 Modelo de embeddings
+
+Como configuración inicial se podrán evaluar las alternativas contempladas en el Plan Maestro, incluyendo:
+
+- Gemini Embeddings.
+- FastEmbed u otra alternativa local.
+
+Estas alternativas deberán considerarse como opciones de evaluación y no como una decisión definitiva.
+
+La selección final deberá basarse en las pruebas realizadas por Data & IA y en las restricciones técnicas y operativas del MVP.
+
+---
+
+### 5.3 Vector Store
+
+El Vector Store deberá permitir:
+
+- Almacenar embeddings.
+- Asociar cada embedding con su `chunk_id`.
+- Mantener `document_id`.
+- Conservar la metadata del chunk.
+- Realizar búsquedas por similitud semántica.
+- Recuperar el contenido asociado al vector.
+- Mantener la persistencia necesaria para el MVP.
+
+El Plan Maestro propone inicialmente **ChromaDB** como Vector Store.
+
+Esta propuesta deberá ser validada por el equipo Data & IA antes de considerarse una decisión definitiva.
+
+---
+
+### 5.4 Organización de la información
+
+Conceptualmente, cada registro almacenado deberá mantener una relación similar a:
+
+```json
+{
+  "id": "doc-001-chunk-003",
+  "embedding": "[vector]",
+  "document_id": "doc-001",
+  "metadata": {
+    "source": "vcn.pdf",
+    "page": 4,
+    "section": "Redes Virtuales"
+  },
+  "content": "Contenido del chunk..."
+}
+```
+
+La estructura anterior es conceptual.
+
+El formato definitivo dependerá de las capacidades y restricciones del Vector Store seleccionado.
+
+---
+
+### 5.5 Identificación y trazabilidad
+
+La generación de embeddings no deberá romper la trazabilidad definida en IA-03.
+
+Deberá mantenerse como mínimo la relación:
+
+```text
+document_id
+      ↓
+  chunk_id
+      ↓
+  embedding
+      ↓
+ Vector Store
+```
+
+A partir de un resultado recuperado deberá ser posible identificar:
+
+- Documento de origen.
+- Chunk recuperado.
+- Contenido asociado.
+- Metadata disponible.
+- Fuente correspondiente.
+
+Esto será necesario para:
+
+- IA-05 — Retriever / RAG.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+
+---
+
+### 5.6 Persistencia
+
+El Vector Store deberá contar con una estrategia de persistencia adecuada para el MVP.
+
+Se deberá definir:
+
+- Ubicación del almacenamiento.
+- Forma de inicialización.
+- Forma de carga.
+- Persistencia entre ejecuciones.
+- Identificación de la colección o índice.
+- Manejo de actualización de documentos.
+- Manejo de documentos duplicados.
+
+La estrategia definitiva deberá considerar el entorno de ejecución seleccionado para NuevaMente.
+
+---
+
+### 5.7 Reprocesamiento
+
+Cuando un documento sea procesado nuevamente, deberá definirse cómo evitar inconsistencias o duplicación de vectores.
+
+Se deberá evaluar una estrategia basada en:
+
+```text
+document_id
+    +
+versión o identificador de procesamiento
+```
+
+La estrategia definitiva deberá permitir distinguir entre:
+
+- Documento nuevo.
+- Documento reprocesado.
+- Documento actualizado.
+- Documento duplicado.
+
+---
+
+### 5.8 Compatibilidad con IA-05
+
+La implementación deberá proporcionar a IA-05 una interfaz clara para realizar consultas semánticas.
+
+Conceptualmente:
+
+```text
+Consulta del usuario
+        ↓
+Embedding de consulta
+        ↓
+Búsqueda en Vector Store
+        ↓
+Resultados relevantes
+        ↓
+Chunks + Metadata
+        ↓
+IA-05 — Retriever / RAG
+```
+
+La forma concreta de realizar la consulta dependerá de la tecnología seleccionada.
+
+---
+
+### 5.9 Criterios para seleccionar la solución
+
+La solución de embeddings + Vector Store deberá evaluarse considerando:
+
+| Criterio | Evaluación |
+|---|---|
+| Calidad semántica | ¿Los resultados representan correctamente el significado? |
+| Idioma | ¿Funciona adecuadamente con contenido en español? |
+| Trazabilidad | ¿Conserva documento, chunk y metadata? |
+| Recuperación | ¿Permite búsquedas semánticas relevantes? |
+| Rendimiento | ¿El tiempo de generación y consulta es adecuado? |
+| Recursos | ¿Puede ejecutarse dentro de las restricciones del MVP? |
+| Persistencia | ¿Los datos sobreviven entre ejecuciones? |
+| Integración | ¿Puede conectarse fácilmente con IA-05? |
+| Operación | ¿La configuración es sencilla de mantener? |
+| Restricciones | ¿Existen límites, cuotas o dependencias que afecten al MVP? |
+
+La decisión deberá registrarse después de realizar las pruebas correspondientes.
+
+---
+
+### 5.10 Principio de decisión
+
+La elección del modelo de embeddings y del Vector Store deberá realizarse considerando conjuntamente:
+
+**Calidad + rendimiento + recursos + restricciones del MVP + facilidad de integración.**
+
+No se deberá seleccionar una tecnología únicamente por ser la propuesta inicial del Plan Maestro.
+
+La configuración final deberá quedar registrada como una decisión técnica de Data & IA y mantenerse alineada con IA-05 — Retriever / RAG.
+
+---
+
+## 6. Validación y pruebas de Embeddings + Vector Store
+
+La solución de embeddings y almacenamiento vectorial deberá validarse utilizando los documentos técnicos y chunks generados en las etapas anteriores.
+
+El objetivo es comprobar que:
+
+- Los embeddings se generan correctamente.
+- Los vectores pueden almacenarse y recuperarse.
+- La metadata se conserva.
+- La trazabilidad no se pierde.
+- Las búsquedas semánticas recuperan contenido relacionado con la consulta.
+- La solución puede ser utilizada posteriormente por IA-05.
+
+---
+
+### 6.1 Documentos de prueba
+
+Las pruebas deberán utilizar documentos técnicos representativos del MVP, incluyendo como referencia:
+
+- VCN de OCI.
+- JWT.
+- Microservicios.
+
+Cuando sea posible, deberán utilizarse documentos con diferentes estructuras y conceptos técnicos para evaluar la calidad de la representación semántica.
+
+---
+
+### 6.2 Validación de generación de embeddings
+
+Para cada chunk procesado se deberá comprobar:
+
+- Que el embedding sea generado correctamente.
+- Que el vector tenga una dimensión consistente.
+- Que no existan embeddings vacíos o inválidos.
+- Que el `chunk_id` se conserve.
+- Que el `document_id` se conserve.
+- Que la metadata permanezca asociada al vector.
+
+Se deberán registrar errores producidos durante la generación.
+
+---
+
+### 6.3 Validación del almacenamiento
+
+Una vez generados los embeddings, se deberá comprobar que puedan almacenarse correctamente en el Vector Store.
+
+Se deberá verificar:
+
+- Inserción de vectores.
+- Identificación de cada registro.
+- Persistencia de la información.
+- Conservación del contenido asociado.
+- Conservación de metadata.
+- Recuperación posterior del registro.
+
+La prueba deberá confirmar que un vector almacenado puede relacionarse nuevamente con su chunk de origen.
+
+---
+
+### 6.4 Pruebas de búsqueda semántica
+
+Se deberán definir consultas representativas relacionadas con el contenido de los documentos.
+
+Ejemplo conceptual:
+
+```text
+Documento:
+VCN de OCI
+
+Consulta:
+¿Qué función cumple una VCN?
+
+Resultado esperado:
+Recuperar chunks relacionados con la definición,
+función y características principales de una VCN.
+```
+
+Las consultas deberán cubrir diferentes tipos de búsqueda, por ejemplo:
+
+- Definiciones.
+- Conceptos técnicos.
+- Características.
+- Relaciones entre conceptos.
+- Casos de uso.
+- Procedimientos cuando estén presentes en el documento.
+
+---
+
+### 6.5 Evaluación de relevancia
+
+Los resultados de las búsquedas deberán evaluarse para determinar si los chunks recuperados son pertinentes para la consulta.
+
+Se deberá registrar, como mínimo:
+
+- Consulta realizada.
+- Documento esperado.
+- Chunk esperado cuando pueda determinarse.
+- Resultado recuperado.
+- Relevancia observada.
+- Metadata recuperada.
+- Fuente identificada.
+
+La evaluación deberá permitir identificar problemas como:
+
+- Resultados irrelevantes.
+- Resultados parcialmente relacionados.
+- Falta de contexto.
+- Recuperación de un documento incorrecto.
+- Recuperación de chunks duplicados o redundantes.
+
+---
+
+### 6.6 Umbral de similitud
+
+El Plan Maestro propone inicialmente utilizar un criterio de similitud para la recuperación.
+
+El PRD de referencia contempla como propuesta un umbral de similitud semántica de:
+
+```text
+similarity >= 0.75
+```
+
+Este valor deberá considerarse como **parámetro inicial de evaluación**, no como un valor definitivo.
+
+Deberá comprobarse mediante pruebas si el umbral permite:
+
+- Recuperar información relevante.
+- Reducir resultados irrelevantes.
+- Mantener suficiente cobertura.
+- Funcionar adecuadamente con los documentos del MVP.
+
+La configuración definitiva deberá ser validada por Data & IA.
+
+---
+
+### 6.7 Validación de trazabilidad
+
+A partir de cualquier resultado recuperado deberá ser posible identificar:
+
+```text
+Resultado
+   ↓
+chunk_id
+   ↓
+document_id
+   ↓
+Documento original
+```
+
+También deberá poder recuperarse, cuando esté disponible:
+
+- Fuente.
+- Página.
+- Sección.
+- Contenido original del chunk.
+
+Si algún dato no puede recuperarse, deberá registrarse la limitación y evaluarse su impacto sobre IA-05 e IA-07.
+
+---
+
+### 6.8 Pruebas de persistencia
+
+Se deberá comprobar que la información almacenada pueda recuperarse después de reiniciar el proceso o entorno de ejecución, de acuerdo con la estrategia de persistencia seleccionada.
+
+La prueba deberá validar:
+
+```text
+Generar embeddings
+        ↓
+Guardar Vector Store
+        ↓
+Cerrar / reiniciar proceso
+        ↓
+Cargar Vector Store
+        ↓
+Realizar búsqueda
+        ↓
+Obtener resultados
+```
+
+Si la solución requiere reconstruir los embeddings después de cada ejecución, deberá registrarse como una limitación y evaluarse su impacto en el MVP.
+
+---
+
+### 6.9 Pruebas de duplicados y reprocesamiento
+
+Se deberá evaluar qué sucede cuando:
+
+- Se procesa nuevamente el mismo documento.
+- Se procesa una nueva versión del documento.
+- Se vuelve a ejecutar el pipeline sobre los mismos chunks.
+
+El sistema deberá evitar, en la medida de lo posible, generar duplicaciones no controladas.
+
+La estrategia utilizada deberá quedar documentada.
+
+---
+
+### 6.10 Registro de resultados
+
+Las pruebas deberán registrar:
+
+- Modelo de embeddings utilizado.
+- Vector Store utilizado.
+- Configuración relevante.
+- Cantidad de documentos.
+- Cantidad de chunks.
+- Cantidad de embeddings generados.
+- Consultas utilizadas.
+- Resultados obtenidos.
+- Problemas detectados.
+- Tiempo aproximado de procesamiento cuando sea relevante.
+- Parámetros ajustados.
+- Decisión final.
+
+Esto permitirá justificar técnicamente la configuración seleccionada para el MVP.
+
+---
+
+### 6.11 Criterios de aceptación
+
+IA-04 podrá considerarse validada cuando:
+
+- Los embeddings se generen correctamente.
+- Los vectores puedan almacenarse.
+- Los vectores puedan recuperarse.
+- La metadata se conserve.
+- La trazabilidad se mantenga.
+- Las búsquedas semánticas produzcan resultados relevantes.
+- El umbral de similitud haya sido evaluado.
+- La persistencia haya sido comprobada según la estrategia seleccionada.
+- Los casos de duplicación o reprocesamiento hayan sido evaluados.
+- Los resultados de las pruebas estén registrados.
+- La salida sea utilizable por IA-05 — Retriever / RAG.
+
+La evaluación de la calidad final del Retriever corresponde a IA-05, pero IA-04 deberá proporcionar una base vectorial funcional y trazable para realizar dicha evaluación.

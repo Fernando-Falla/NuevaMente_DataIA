@@ -1,0 +1,795 @@
+# IA-02 — Ingestión y validación de documentos
+
+## 🎯 Objetivo
+
+Implementar y validar la etapa de entrada documental de NuevaMente, permitiendo recibir documentos técnicos en formatos PDF, Markdown y TXT, extraer y normalizar su contenido, validar que puedan ser procesados y generar la información necesaria para las siguientes etapas del pipeline de Data & IA.
+
+La salida de esta actividad deberá estar preparada para ser utilizada por:
+
+➡️ IA-03 — Chunking + Metadata
+
+---
+
+## 🧩 Alcance
+
+La etapa de ingestión deberá contemplar el siguiente flujo:
+
+Documento
+↓
+Validar formato
+↓
+Extraer contenido
+↓
+Validar contenido
+↓
+Validar pertinencia técnica
+↓
+Normalizar texto
+↓
+Generar metadata
+↓
+Mantener trazabilidad
+↓
+Texto + Metadata
+↓
+IA-03 — Chunking + Metadata
+
+Los formatos contemplados para el MVP son:
+
+- PDF
+- Markdown
+- TXT
+
+La implementación deberá permitir que cada formato sea procesado mediante una estrategia adecuada, manteniendo la mayor cantidad posible de información útil para las etapas posteriores del pipeline RAG.
+
+---
+
+## 📥 Entradas
+
+La actividad recibirá:
+
+- Documento técnico.
+- Nombre o identificador del documento.
+- Tipo de archivo.
+- Información disponible sobre el origen del documento.
+
+Cuando corresponda, deberá conservarse información que permita relacionar posteriormente:
+
+**Documento → contenido extraído → chunks → embeddings → recuperación → contenido generado**
+
+---
+
+## 📤 Salidas
+
+Cuando el documento sea válido, IA-02 deberá entregar:
+
+- Texto extraído y normalizado.
+- Identificador del documento.
+- Tipo de documento.
+- Nombre o referencia del archivo.
+- Información de origen.
+- Metadata disponible.
+- Información de trazabilidad necesaria para IA-03.
+
+Cuando el documento no pueda procesarse, deberá generarse una respuesta controlada indicando:
+
+- Estado.
+- Código del error.
+- Mensaje comprensible.
+- Motivo del rechazo cuando pueda determinarse.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Fernando Falla — Data Engineer
+
+**Participación / validación:**
+
+- Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal de IA-02 comprende la extracción, normalización y preparación del contenido documental para las siguientes etapas del pipeline.
+
+La validación de pertinencia técnica y los criterios de aceptación deberán revisarse con el equipo Data & IA.
+
+---
+
+## 🔗 Dependencia
+
+**Entrada:**
+
+IA-01 — Diseñar flujo IA
+
+**Salida hacia:**
+
+IA-03 — Chunking + Metadata
+
+**Dependencias de integración:**
+
+- Backend — contrato de recepción del documento.
+- Frontend — selección y envío del documento.
+
+
+---
+
+## 4. Estrategia de extracción y normalización
+
+La etapa de extracción deberá transformar cada documento recibido en contenido textual utilizable por las siguientes etapas del pipeline.
+
+El proceso deberá conservar, cuando sea posible, la información necesaria para mantener la estructura y trazabilidad del documento original.
+
+---
+
+### 4.1 Extracción de documentos PDF
+
+Para documentos PDF se deberá evaluar una estrategia de extracción que permita obtener el contenido textual de forma confiable.
+
+El Plan Maestro propone utilizar:
+
+- PyMuPDF
+- PyPDF
+
+La selección de la librería deberá validarse mediante pruebas con los documentos técnicos definidos para el MVP.
+
+La evaluación deberá considerar:
+
+- Calidad del texto extraído.
+- Conservación del orden del contenido.
+- Identificación de páginas.
+- Manejo de títulos y secciones.
+- Manejo de tablas cuando sea posible.
+- Manejo de código o bloques técnicos.
+- Documentos con diferentes estructuras.
+- Documentos con contenido que no pueda extraerse correctamente.
+
+La extracción deberá conservar, cuando esté disponible, la referencia de página para facilitar posteriormente la trazabilidad.
+
+---
+
+### 4.2 Extracción de Markdown
+
+Para documentos Markdown se deberá procesar el contenido respetando su estructura lógica.
+
+Cuando sea posible deberán conservarse elementos como:
+
+- Títulos.
+- Subtítulos.
+- Listas.
+- Código.
+- Tablas.
+- Secciones.
+
+La estructura obtenida será utilizada posteriormente por IA-03 para realizar el chunking contextual y generar metadata.
+
+---
+
+### 4.3 Extracción de TXT
+
+Para documentos TXT se deberá realizar una lectura directa del contenido, aplicando posteriormente las reglas de normalización definidas para el pipeline.
+
+Se deberá considerar:
+
+- Codificación del archivo.
+- Saltos de línea.
+- Espacios innecesarios.
+- Caracteres no deseados.
+- Separación lógica del contenido cuando sea posible.
+
+---
+
+### 4.4 Normalización
+
+Después de la extracción, el contenido deberá pasar por una etapa de normalización.
+
+El objetivo es obtener un texto consistente para las siguientes etapas sin eliminar información técnica relevante.
+
+La normalización podrá contemplar:
+
+- Limpieza de espacios innecesarios.
+- Normalización de saltos de línea.
+- Eliminación de caracteres no útiles.
+- Corrección de problemas de codificación cuando corresponda.
+- Conservación de títulos y estructura.
+- Conservación de código y elementos técnicos.
+- Conservación de referencias de página o sección cuando estén disponibles.
+
+La normalización no deberá modificar el significado del contenido original.
+
+---
+
+### 4.5 Validación del contenido extraído
+
+Una vez realizada la extracción y normalización, deberá comprobarse que el resultado sea procesable.
+
+Se deberá verificar, como mínimo:
+
+- Que exista contenido.
+- Que el texto tenga una longitud suficiente para ser procesado.
+- Que no corresponda únicamente a caracteres ilegibles o contenido vacío.
+- Que la extracción no haya producido un resultado claramente incompleto.
+
+Cuando la extracción no sea suficiente, el sistema deberá devolver un resultado controlado y no continuar silenciosamente con contenido inválido.
+
+---
+
+### 4.6 Validación de pertinencia técnica
+
+NuevaMente está orientado al procesamiento de documentación técnica.
+
+Por ello, además de comprobar que el documento pueda ser leído, IA-02 deberá contemplar una validación de pertinencia técnica.
+
+Resultado conceptual:
+
+- **Técnico** → puede continuar.
+- **No técnico** → debe rechazarse.
+- **No concluyente** → requiere un comportamiento definido por el equipo.
+
+Para un documento identificado como no técnico se propone una respuesta controlada:
+
+{
+  "status": "rechazado",
+  "codigo": "DOCUMENTO_NO_TECNICO",
+  "mensaje": "El documento no contiene contenido técnico suficiente para ser procesado por NuevaMente."
+}
+
+El mecanismo utilizado para determinar la pertinencia técnica deberá definirse y validarse durante la implementación.
+
+---
+
+### 4.7 Resultado de la etapa
+
+Cuando el documento sea válido, IA-02 deberá entregar a IA-03:
+
+**Texto normalizado + metadata + trazabilidad**
+
+Cuando el documento no sea válido, deberá detenerse el procesamiento y devolver un resultado controlado.
+
+El objetivo es evitar que documentos vacíos, ilegibles, no procesables o no pertinentes continúen hacia:
+
+- Chunking.
+- Embeddings.
+- Vector Store.
+- RAG.
+- Generación de contenido.
+
+---
+
+### 4.8 Criterio de implementación
+
+Las herramientas y reglas indicadas en esta sección son propuestas iniciales.
+
+Antes de cerrar IA-02 deberán realizarse pruebas con documentos reales del MVP para validar:
+
+- Calidad de extracción.
+- Calidad de normalización.
+- Conservación de estructura.
+- Trazabilidad.
+- Detección de documentos no procesables.
+- Detección de documentos no técnicos.
+
+Las decisiones finales deberán quedar documentadas en la Issue antes de considerar completada esta actividad.
+
+---
+
+## 5. Metadata y trazabilidad
+
+La etapa de ingestión deberá generar y conservar la metadata necesaria para identificar el origen del contenido durante todo el pipeline de Data & IA.
+
+El objetivo es mantener la relación:
+
+Documento → Contenido → Chunk → Embedding → Recuperación → Contenido generado
+
+Esto permitirá posteriormente identificar la fuente utilizada durante la recuperación y facilitar la validación de fidelidad.
+
+---
+
+### 5.1 Metadata del documento
+
+Como mínimo, se deberá considerar:
+
+- `document_id`
+- Nombre del documento.
+- Tipo de documento.
+- Fuente u origen.
+- Referencia al archivo original, cuando corresponda.
+- Fecha de procesamiento, cuando sea necesaria.
+- Información adicional disponible que sea relevante para la trazabilidad.
+
+La estructura definitiva deberá alinearse con el contrato que se defina entre Data & IA y Backend.
+
+---
+
+### 5.2 Metadata del contenido extraído
+
+Durante la extracción se deberá conservar, cuando esté disponible:
+
+- Página del documento.
+- Sección.
+- Título.
+- Subtítulo.
+- Posición o referencia dentro del documento.
+- Identificador del documento.
+
+La disponibilidad de estos datos dependerá del formato y de la calidad de la extracción.
+
+No se deberá asumir que todos los documentos tendrán la misma estructura.
+
+---
+
+### 5.3 Identificación del documento
+
+Cada documento procesado deberá contar con un identificador único dentro del pipeline.
+
+Ejemplo conceptual:
+
+```text
+document_id: doc-001
+```
+
+Este identificador deberá mantenerse durante las siguientes etapas para permitir relacionar:
+
+```text
+doc-001
+   ↓
+chunks del documento
+   ↓
+embeddings
+   ↓
+resultados de recuperación
+   ↓
+contenido generado
+```
+
+---
+
+### 5.4 Trazabilidad hacia los chunks
+
+IA-02 deberá entregar a IA-03 la información necesaria para que cada chunk pueda mantener referencia a su documento de origen.
+
+La relación esperada será:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Embedding
+   ↓
+Resultado de búsqueda
+   ↓
+Fuente utilizada
+```
+
+IA-02 es responsable de proporcionar la información de origen.
+
+IA-03 será responsable de mantener dicha referencia durante el proceso de chunking.
+
+---
+
+### 5.5 Identificación de errores
+
+Los errores producidos durante la ingestión o extracción deberán poder asociarse al documento que los originó.
+
+Cuando sea posible, se deberá identificar:
+
+- Documento afectado.
+- Etapa donde ocurrió el error.
+- Código de error.
+- Mensaje.
+- Información adicional necesaria para diagnóstico.
+
+Esto permitirá que Backend pueda devolver posteriormente un mensaje controlado al usuario.
+
+---
+
+### 5.6 Información mínima para IA-03
+
+Antes de entregar el documento a IA-03, IA-02 deberá garantizar que exista como mínimo:
+
+**Contenido**
+
+- Texto extraído.
+- Texto normalizado.
+
+**Identificación**
+
+- `document_id`
+- Nombre o referencia del documento.
+- Tipo de documento.
+
+**Origen**
+
+- Fuente del documento, cuando esté disponible.
+
+**Trazabilidad**
+
+- Página, sección u otra referencia de ubicación cuando pueda obtenerse.
+
+---
+
+### 5.7 Ejemplo conceptual
+
+La estructura podrá representarse conceptualmente de la siguiente forma:
+
+```text
+Documento
+├── document_id
+├── nombre
+├── tipo
+├── fuente
+└── contenido
+    ├── sección
+    ├── página
+    └── texto normalizado
+```
+
+La estructura definitiva de datos no se considera cerrada en IA-02.
+
+Deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata
+- IA-04 — Embeddings + Vector Store
+- IA-05 — Retriever / RAG
+- IA-07 — Validación IA
+- IA-08 — Integración + JSON
+
+---
+
+### 5.8 Criterio de aceptación
+
+IA-02 deberá garantizar que la información generada durante la ingestión permita responder:
+
+- ¿Qué documento fue procesado?
+- ¿Qué tipo de documento era?
+- ¿De dónde proviene?
+- ¿Qué contenido fue extraído?
+- ¿Dónde se encontraba ese contenido cuando sea posible determinarlo?
+- ¿Qué identificador permite relacionarlo con los chunks posteriores?
+
+Si esta información no puede conservarse para un documento determinado, deberá registrarse la limitación y evaluarse su impacto sobre la trazabilidad y la validación posterior.
+
+---
+
+## 6. Pruebas y validación de la ingestión
+
+IA-02 deberá validar el comportamiento de la etapa de ingestión utilizando documentos representativos de los formatos contemplados para el MVP.
+
+Las pruebas deberán comprobar tanto los casos correctos como los casos de error.
+
+---
+
+### 6.1 Documentos de prueba
+
+Se deberá contar como mínimo con documentos técnicos representativos para validar el pipeline.
+
+Como referencia inicial se proponen:
+
+- Documento técnico sobre VCN de OCI.
+- Documento técnico sobre JWT.
+- Documento técnico sobre Microservicios.
+
+También se recomienda contar con al menos un documento deliberadamente no técnico para validar la detección de pertinencia.
+
+Los documentos definitivos de prueba deberán ser acordados por el equipo Data & IA.
+
+---
+
+### 6.2 Pruebas por formato
+
+Se deberán realizar pruebas para cada formato soportado:
+
+| Formato | Validación |
+|---|---|
+| PDF | Extracción y normalización |
+| Markdown | Conservación de estructura y contenido |
+| TXT | Lectura y normalización |
+
+Cada prueba deberá comprobar que el resultado pueda continuar correctamente hacia IA-03.
+
+---
+
+### 6.3 Casos de prueba mínimos
+
+#### Caso 1 — Documento técnico válido
+
+**Entrada:**
+
+Documento técnico correctamente estructurado.
+
+**Resultado esperado:**
+
+- Documento aceptado.
+- Contenido extraído.
+- Texto normalizado.
+- Metadata generada.
+- `document_id` asignado.
+- Documento enviado a IA-03.
+
+---
+
+#### Caso 2 — Documento no técnico
+
+**Entrada:**
+
+Documento sin contenido técnico suficiente.
+
+**Resultado esperado:**
+
+El procesamiento deberá detenerse y devolver una respuesta controlada.
+
+Ejemplo:
+
+```json
+{
+  "status": "rechazado",
+  "codigo": "DOCUMENTO_NO_TECNICO",
+  "mensaje": "El documento no contiene contenido técnico suficiente para ser procesado por NuevaMente."
+}
+```
+
+---
+
+#### Caso 3 — Formato no soportado
+
+**Entrada:**
+
+Archivo con una extensión no contemplada por el MVP.
+
+**Resultado esperado:**
+
+- Documento rechazado.
+- Código de error controlado.
+- Mensaje comprensible para Backend y posteriormente para Frontend.
+
+---
+
+#### Caso 4 — Documento vacío
+
+**Entrada:**
+
+Archivo sin contenido.
+
+**Resultado esperado:**
+
+- Documento rechazado.
+- No debe continuar hacia chunking.
+- Debe generarse un error controlado.
+
+---
+
+#### Caso 5 — Documento ilegible o extracción insuficiente
+
+**Entrada:**
+
+Documento cuyo contenido no pueda extraerse correctamente.
+
+**Resultado esperado:**
+
+- Detectar que el contenido obtenido no es suficiente.
+- Evitar continuar con información inválida.
+- Registrar el problema.
+- Devolver un resultado controlado.
+
+---
+
+#### Caso 6 — Documento con estructura compleja
+
+**Entrada:**
+
+Documento que contenga elementos como:
+
+- Títulos.
+- Subtítulos.
+- Listas.
+- Tablas.
+- Código.
+- Diferentes secciones.
+
+**Resultado esperado:**
+
+La extracción deberá conservar la mayor cantidad posible de información estructural relevante para que IA-03 pueda realizar posteriormente un chunking contextual.
+
+---
+
+### 6.4 Validación de trazabilidad
+
+Las pruebas deberán comprobar que el identificador del documento y la información de origen se mantengan correctamente.
+
+Se deberá verificar la relación:
+
+```text
+Documento
+   ↓
+document_id
+   ↓
+Contenido extraído
+   ↓
+IA-03
+```
+
+La pérdida de esta relación deberá considerarse un problema de trazabilidad y registrarse para su corrección.
+
+---
+
+### 6.5 Criterios de evaluación
+
+Las pruebas deberán permitir evaluar:
+
+- Calidad de extracción.
+- Integridad del contenido.
+- Conservación de estructura.
+- Calidad de normalización.
+- Generación de metadata.
+- Trazabilidad.
+- Detección de documentos no procesables.
+- Detección de documentos no técnicos.
+- Manejo de errores.
+- Compatibilidad de la salida con IA-03.
+
+Los resultados deberán registrarse para respaldar las decisiones técnicas de IA-02.
+
+---
+
+### 6.6 Resultado de las pruebas
+
+Al finalizar las pruebas deberá quedar identificado:
+
+- Qué formatos fueron validados.
+- Qué documentos fueron utilizados.
+- Qué estrategia de extracción se utilizó.
+- Qué problemas fueron encontrados.
+- Qué ajustes fueron necesarios.
+- Qué casos quedaron fuera de soporte.
+- Qué limitaciones deben ser conocidas por las siguientes etapas.
+
+Las conclusiones deberán utilizarse para definir la configuración final de IA-02.
+
+---
+
+## 7. Subtareas
+
+- [ ] IA-02.1 — Definir formatos y reglas de entrada.
+- [ ] IA-02.2 — Evaluar estrategia de extracción para PDF.
+- [ ] IA-02.3 — Implementar extracción de documentos PDF.
+- [ ] IA-02.4 — Implementar extracción de documentos Markdown.
+- [ ] IA-02.5 — Implementar extracción de documentos TXT.
+- [ ] IA-02.6 — Implementar normalización del contenido.
+- [ ] IA-02.7 — Implementar validación del contenido extraído.
+- [ ] IA-02.8 — Implementar validación de pertinencia técnica.
+- [ ] IA-02.9 — Generar metadata del documento.
+- [ ] IA-02.10 — Mantener trazabilidad del contenido.
+- [ ] IA-02.11 — Preparar documentos de prueba.
+- [ ] IA-02.12 — Ejecutar pruebas de extracción y validación.
+- [ ] IA-02.13 — Registrar resultados, problemas y decisiones técnicas.
+
+---
+
+## 8. Decisiones pendientes
+
+Antes de considerar IA-02 cerrada, el equipo deberá validar:
+
+- [ ] Librería o estrategia definitiva para extracción de PDF.
+- [ ] Estrategia de extracción para Markdown.
+- [ ] Estrategia de extracción para TXT.
+- [ ] Reglas definitivas de normalización.
+- [ ] Criterios para determinar si un documento contiene suficiente contenido.
+- [ ] Criterios para determinar la pertinencia técnica.
+- [ ] Comportamiento ante documentos no concluyentes.
+- [ ] Metadata mínima obligatoria.
+- [ ] Información de trazabilidad disponible por formato.
+- [ ] Contrato de salida hacia IA-03.
+- [ ] Códigos y mensajes de error.
+- [ ] Documentos definitivos para las pruebas del MVP.
+
+---
+
+## 9. Dependencias
+
+### Entrada
+
+**IA-01 — Diseñar flujo IA**
+
+IA-02 recibe de la arquitectura general la definición de los parámetros y flujo que deberá soportar.
+
+### Salida
+
+**IA-03 — Chunking + Metadata**
+
+IA-02 deberá entregar:
+
+- Texto normalizado.
+- Identificador del documento.
+- Metadata.
+- Información de origen.
+- Información de trazabilidad disponible.
+
+### Dependencias con Backend
+
+La implementación deberá alinearse con Backend para definir:
+
+- Cómo llega el documento.
+- Quién recibe el archivo.
+- Quién realiza la extracción.
+- Cómo se entrega el contenido a Data & IA.
+- Cómo se comunican los errores.
+
+### Dependencias con Frontend
+
+Frontend deberá conocer:
+
+- Formatos soportados.
+- Restricciones básicas de archivo.
+- Errores que pueden producirse durante la ingestión.
+
+Frontend no será responsable de determinar si el contenido de un documento es técnicamente válido.
+
+---
+
+## 10. Fuera de alcance
+
+IA-02 no será responsable de:
+
+- Generar embeddings.
+- Crear o administrar el Vector Store.
+- Realizar recuperación semántica.
+- Construir el contexto RAG.
+- Generar contenido educativo.
+- Validar la fidelidad del contenido generado.
+- Generar el JSON final de adaptación.
+
+Estas responsabilidades corresponden a las etapas posteriores del pipeline.
+
+---
+
+## 11. Definition of Done
+
+IA-02 estará completa cuando:
+
+- [ ] PDF, Markdown y TXT puedan ser procesados según las reglas definidas.
+- [ ] La estrategia de extracción haya sido validada mediante pruebas.
+- [ ] El contenido extraído sea normalizado.
+- [ ] Se valide que el contenido sea procesable.
+- [ ] Se valide la pertinencia técnica según los criterios acordados.
+- [ ] Los documentos no válidos generen respuestas controladas.
+- [ ] Se genere el `document_id`.
+- [ ] Se genere la metadata definida.
+- [ ] Se mantenga la trazabilidad disponible del documento.
+- [ ] Se hayan ejecutado los casos de prueba definidos.
+- [ ] Se hayan probado documentos técnicos y al menos un caso no técnico.
+- [ ] Se hayan registrado los resultados y limitaciones.
+- [ ] La salida de IA-02 sea compatible con IA-03.
+- [ ] Las decisiones técnicas finales queden registradas en la Issue.
+
+---
+
+## 👤 Responsable
+
+**Equipo:** Data & IA
+
+**Responsable principal:** Fernando Falla — Data Engineer
+
+**Participación / validación:**
+
+- Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+---
+
+## 📌 Resultado esperado
+
+Al finalizar IA-02 deberá existir una etapa funcional capaz de recibir un documento soportado, extraer y normalizar su contenido, validar que pueda continuar en el pipeline y entregar a IA-03 el texto acompañado de la metadata y trazabilidad necesarias.
+
+**Flujo de salida:**
+
+Documento válido
+→ Texto normalizado + Metadata
+→ IA-03 — Chunking + Metadata
+
+Documento inválido
+→ Resultado controlado
+→ Fin del procesamiento

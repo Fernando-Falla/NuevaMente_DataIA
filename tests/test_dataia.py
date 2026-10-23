@@ -35,6 +35,7 @@ def test_clave_propia_de_dataia(monkeypatch):
     assert get_google_api_key() == "clave-ai-core"
     monkeypatch.setenv("DATAIA_GOOGLE_API_KEY", "clave-dataia")
     assert get_google_api_key() == "clave-dataia"
+    monkeypatch.setenv("DATAIA_EMBEDDINGS", "gemini")
     assert client.get_embeddings_model().google_api_key.get_secret_value() == "clave-dataia"
 
 

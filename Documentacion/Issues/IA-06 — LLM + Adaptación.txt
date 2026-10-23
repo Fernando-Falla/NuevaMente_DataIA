@@ -1,0 +1,1213 @@
+# IA-06 — LLM + Adaptación
+
+## 🎯 Objetivo
+
+Implementar y validar la etapa de generación y adaptación pedagógica de NuevaMente, utilizando el contexto recuperado por IA-05 junto con el perfil y formato educativo seleccionados para generar contenido técnico adaptado al usuario.
+
+Esta etapa deberá permitir transformar información técnica en contenido educativo comprensible y estructurado, manteniendo la fidelidad respecto de las fuentes recuperadas.
+
+El contenido generado será posteriormente evaluado por:
+
+➡️ IA-07 — Validación IA
+
+---
+
+## 🧩 Alcance
+
+El flujo general de IA-06 será:
+
+```text
+IA-05
+Contexto relevante + Fuentes
+        ↓
+Perfil educativo
+        ↓
+Formato educativo
+        ↓
+Construcción de instrucciones
+        ↓
+LLM
+        ↓
+Generación del contenido
+        ↓
+Estructuración de la respuesta
+        ↓
+Metadata y fuentes
+        ↓
+IA-07 — Validación IA
+```
+
+La actividad deberá contemplar:
+
+- Definición de la estrategia de interacción con el LLM.
+- Construcción de instrucciones para la generación.
+- Incorporación del contexto recuperado mediante RAG.
+- Adaptación según perfil educativo.
+- Adaptación según formato educativo.
+- Generación del contenido.
+- Estructuración de la respuesta.
+- Conservación de las fuentes utilizadas.
+- Manejo de respuestas incompletas o inválidas.
+- Preparación del contenido para IA-07.
+
+La selección definitiva del proveedor y modelo de LLM deberá validarse considerando calidad, disponibilidad, límites de uso, rendimiento y restricciones del MVP.
+
+---
+
+## 📥 Entradas
+
+IA-06 recibirá:
+
+### Desde IA-05
+
+- Contexto recuperado.
+- Chunks relevantes.
+- Fuentes.
+- `document_id`.
+- `chunk_id`.
+- Metadata disponible.
+- Información de relevancia cuando corresponda.
+
+### Parámetros de adaptación
+
+- Perfil educativo.
+- Formato educativo.
+- Tema o necesidad de aprendizaje.
+- Información adicional proporcionada por el flujo de aplicación.
+
+Los perfiles y formatos definitivos deberán corresponder a los definidos y validados para el MVP.
+
+Como referencia, el Plan Maestro contempla perfiles como:
+
+- Junior.
+- Senior / Líder Técnico.
+- Ejecutivo.
+
+Y formatos como:
+
+- Flashcards.
+- Quiz.
+- Mapas.
+- TL;DR.
+- Tutoriales.
+
+Estos elementos deberán considerarse propuestas de alcance hasta que el equipo confirme cuáles serán implementados en el MVP.
+
+---
+
+## 📤 Salida
+
+IA-06 deberá generar contenido educativo estructurado de acuerdo con:
+
+- Perfil seleccionado.
+- Formato seleccionado.
+- Contexto recuperado.
+- Información disponible en las fuentes.
+
+La salida deberá incluir, cuando corresponda:
+
+- Contenido educativo generado.
+- Perfil aplicado.
+- Formato utilizado.
+- Fuentes utilizadas.
+- Referencias de los chunks utilizados.
+- Información necesaria para la validación posterior.
+
+Conceptualmente:
+
+```json
+{
+  "perfil": "Junior",
+  "formato": "Flashcards",
+  "contenido": {},
+  "fuentes": [
+    {
+      "document_id": "doc-001",
+      "chunk_id": "doc-001-chunk-003"
+    }
+  ]
+}
+```
+
+El ejemplo es conceptual.
+
+El schema definitivo deberá alinearse posteriormente con:
+
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+- Backend — contrato de integración.
+
+---
+
+## 🧠 Principio de adaptación
+
+La adaptación deberá modificar principalmente:
+
+- Nivel de profundidad.
+- Complejidad del lenguaje.
+- Cantidad de explicación.
+- Tipo de ejemplos.
+- Forma de presentación.
+- Enfoque pedagógico.
+
+La adaptación no deberá alterar deliberadamente el significado técnico de la información proporcionada por las fuentes.
+
+El contenido generado deberá permanecer sustentado en el contexto recuperado mediante RAG.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+
+**Participación / validación:**
+
+- Fernando Falla — Data Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende definir e implementar la estrategia de generación, adaptación pedagógica y estructuración del contenido producido por el LLM.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-05 — Retriever / RAG**
+
+Proporciona:
+
+- Contexto relevante.
+- Chunks recuperados.
+- Fuentes.
+- Metadata necesaria para la generación.
+
+### Salida
+
+**IA-07 — Validación IA**
+
+Recibirá el contenido generado y las fuentes utilizadas para evaluar su fidelidad.
+
+### Integración
+
+**IA-08 — Integración + JSON**
+
+Definirá junto con IA-06 la estructura necesaria para entregar el resultado al Backend y posteriormente al Frontend.
+
+### Dependencias transversales
+
+La implementación deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-05 — Retriever / RAG.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+- Backend — contrato de entrada y salida.
+- Frontend — perfiles y formatos disponibles.
+
+---
+
+## 5. Estrategia de Prompts y Adaptación Pedagógica
+
+### 5.1 Estructura general de las instrucciones
+
+La generación deberá utilizar instrucciones estructuradas que separen claramente:
+
+- Rol del LLM.
+- Objetivo de la generación.
+- Contexto recuperado mediante RAG.
+- Perfil educativo.
+- Formato educativo.
+- Reglas de adaptación.
+- Restricciones de fidelidad.
+- Formato esperado de salida.
+
+Conceptualmente:
+
+```text
+System Prompt
+      +
+Perfil educativo
+      +
+Formato educativo
+      +
+Contexto RAG
+      +
+Instrucciones específicas
+      ↓
+     LLM
+      ↓
+Contenido educativo estructurado
+```
+
+La estructura definitiva deberá validarse durante las pruebas.
+
+---
+
+### 5.2 System Prompt
+
+El System Prompt deberá establecer las reglas generales que el LLM deberá seguir durante la generación.
+
+Deberá contemplar, como mínimo:
+
+- Rol que debe asumir el modelo.
+- Objetivo educativo de NuevaMente.
+- Uso obligatorio del contexto proporcionado.
+- Prohibición de inventar información no sustentada.
+- Conservación del significado técnico.
+- Adaptación al perfil solicitado.
+- Cumplimiento del formato solicitado.
+- Generación de una salida estructurada.
+
+El System Prompt deberá mantenerse separado de los datos específicos de cada consulta.
+
+---
+
+### 5.3 Role Prompting
+
+La generación podrá utilizar instrucciones específicas relacionadas con el perfil seleccionado.
+
+Ejemplo conceptual:
+
+```text
+Perfil:
+Junior
+
+Instrucción:
+Explica el concepto utilizando lenguaje claro,
+define los términos técnicos y utiliza ejemplos
+sencillos cuando estén respaldados por la fuente.
+```
+
+Para un perfil de mayor experiencia:
+
+```text
+Perfil:
+Senior / Líder Técnico
+
+Instrucción:
+Prioriza profundidad técnica, relaciones entre
+componentes, decisiones de arquitectura y
+trade-offs presentes en la fuente.
+```
+
+Las instrucciones definitivas para cada perfil deberán ser validadas mediante pruebas.
+
+---
+
+### 5.4 Adaptación por perfil
+
+La adaptación deberá modificar principalmente la forma de presentar la información, manteniendo el contenido técnico sustentado en las fuentes.
+
+Como referencia inicial:
+
+| Perfil | Enfoque de adaptación |
+|---|---|
+| Junior | Lenguaje claro, conceptos fundamentales y ejemplos explicativos |
+| Senior / Líder Técnico | Mayor profundidad técnica, relaciones y decisiones técnicas |
+| Ejecutivo | Síntesis, impacto, conceptos clave y visión general |
+
+Estos perfiles representan una propuesta de trabajo y deberán corresponder al alcance final aprobado para el MVP.
+
+---
+
+### 5.5 Adaptación por formato
+
+El LLM deberá generar el contenido de acuerdo con el formato educativo solicitado.
+
+Como referencia, podrán evaluarse:
+
+- Flashcards.
+- Quiz.
+- Mapas.
+- TL;DR.
+- Tutoriales.
+
+Cada formato deberá contar con instrucciones específicas que definan:
+
+- Estructura.
+- Campos requeridos.
+- Nivel de detalle.
+- Tipo de contenido esperado.
+- Restricciones de generación.
+
+El MVP deberá implementar como mínimo los formatos definidos por el alcance aprobado del desafío.
+
+---
+
+### 5.6 Few-shot prompting
+
+Cuando sea útil, podrán utilizarse ejemplos de referencia para orientar al LLM sobre la estructura y características esperadas del contenido.
+
+El enfoque será:
+
+```text
+Instrucciones
+      +
+Ejemplos de referencia
+      +
+Contexto RAG
+      +
+Solicitud actual
+      ↓
+     LLM
+```
+
+Los ejemplos deberán utilizarse para orientar el formato y estilo de salida.
+
+No deberán utilizarse como sustituto del contexto recuperado desde la documentación técnica.
+
+La incorporación de un banco de ejemplos deberá evaluarse según su impacto en:
+
+- Calidad.
+- Consistencia.
+- Consumo de tokens.
+- Tiempo de respuesta.
+- Mantenimiento.
+
+---
+
+### 5.7 Reglas de fidelidad durante la generación
+
+El prompt deberá establecer reglas explícitas para reducir la generación de información no sustentada.
+
+Como mínimo deberá indicar que el modelo:
+
+- Utilice prioritariamente el contexto proporcionado.
+- No invente datos técnicos.
+- No complete información ausente como si proviniera de la fuente.
+- Distinga cuando el contexto sea insuficiente.
+- Mantenga el significado técnico del documento.
+- No atribuya a la fuente información que no aparece en ella.
+
+Estas reglas no sustituyen la validación posterior de IA-07.
+
+---
+
+### 5.8 Manejo de contexto insuficiente
+
+Si IA-05 indica que no existe suficiente contexto para responder o generar el contenido solicitado, IA-06 deberá seguir un comportamiento controlado.
+
+El LLM no deberá inventar información para completar los campos faltantes.
+
+Dependiendo del contrato definido entre IA-05, IA-06 e IA-08, podrá:
+
+- Generar únicamente el contenido sustentado disponible.
+- Indicar que la información es insuficiente.
+- Devolver un estado controlado para revisión.
+
+El comportamiento definitivo deberá validarse durante las pruebas.
+
+---
+
+### 5.9 Separación entre contexto e instrucciones
+
+El contexto recuperado deberá mantenerse claramente diferenciado de las instrucciones.
+
+Conceptualmente:
+
+```text
+[INSTRUCCIONES]
+Reglas del sistema y adaptación
+        ↓
+[PERFIL]
+Nivel educativo
+        ↓
+[FORMATO]
+Tipo de contenido
+        ↓
+[CONTEXTO]
+Información recuperada desde las fuentes
+        ↓
+[SOLICITUD]
+Contenido que debe generarse
+```
+
+Esta separación deberá ayudar a reducir ambigüedades y facilitar la trazabilidad de la generación.
+
+---
+
+### 5.10 Salida estructurada
+
+La generación deberá producir una salida compatible con el formato esperado por las etapas posteriores.
+
+Cuando corresponda, deberá incluir:
+
+- Perfil utilizado.
+- Formato generado.
+- Contenido.
+- Fuentes.
+- Referencias a chunks.
+- Estado de generación.
+
+La estructura definitiva deberá alinearse con el contrato definido en IA-08 y con el consumo realizado por Backend y Frontend.
+
+---
+
+### 5.11 Evaluación de la estrategia
+
+La estrategia de prompts deberá evaluarse mediante los escenarios del MVP.
+
+Se deberá comprobar si las instrucciones permiten:
+
+- Adaptar correctamente el nivel de profundidad.
+- Mantener el significado técnico.
+- Cumplir el formato solicitado.
+- Utilizar adecuadamente el contexto RAG.
+- Mantener una estructura consistente.
+- Evitar información no sustentada.
+- Generar una salida procesable por las siguientes etapas.
+
+Los prompts deberán considerarse configurables y sujetos a iteración durante las pruebas.
+
+---
+
+### 5.12 Principio de diseño
+
+La estrategia deberá mantener la siguiente prioridad:
+
+```text
+Fidelidad a la fuente
+        ↓
+Contexto recuperado
+        ↓
+Objetivo educativo
+        ↓
+Perfil
+        ↓
+Formato
+        ↓
+Presentación
+```
+
+La adaptación pedagógica deberá modificar la forma de explicar o presentar la información, pero no deberá introducir deliberadamente conocimiento técnico que no esté sustentado por el contexto disponible.
+
+---
+
+## 6. Generación y estructuración del contenido
+
+### 6.1 Flujo de generación
+
+La generación deberá seguir una secuencia controlada:
+
+```text
+Contexto RAG
+     +
+Perfil educativo
+     +
+Formato educativo
+     +
+Instrucciones de generación
+     ↓
+Construcción del Prompt
+     ↓
+LLM
+     ↓
+Respuesta generada
+     ↓
+Validación estructural
+     ↓
+Contenido educativo
+     ↓
+IA-07 — Validación IA
+```
+
+La generación deberá realizarse únicamente después de disponer del contexto necesario para el contenido solicitado.
+
+---
+
+### 6.2 Generación según perfil
+
+El contenido generado deberá adaptarse al nivel de conocimiento definido en el perfil.
+
+La adaptación podrá considerar:
+
+- Complejidad del vocabulario.
+- Profundidad técnica.
+- Cantidad de explicación.
+- Tipo de ejemplos.
+- Nivel de detalle.
+- Enfoque de presentación.
+
+La adaptación no deberá modificar los conceptos técnicos sustentados por la fuente.
+
+---
+
+### 6.3 Generación según formato
+
+Cada formato deberá producir una estructura específica.
+
+#### Flashcards
+
+Deberá priorizar:
+
+- Concepto.
+- Pregunta o término.
+- Explicación.
+- Respuesta.
+- Ejemplo cuando esté sustentado por la fuente.
+
+Ejemplo conceptual:
+
+```json
+{
+  "tipo": "flashcard",
+  "pregunta": "¿Qué es una VCN?",
+  "respuesta": "Contenido generado a partir del contexto recuperado.",
+  "fuentes": []
+}
+```
+
+---
+
+#### Quiz
+
+Deberá permitir generar preguntas basadas en el contenido recuperado.
+
+Cuando el formato incluya opciones de respuesta, deberá contemplar:
+
+- Pregunta.
+- Opciones.
+- Respuesta correcta.
+- Explicación.
+- Fuente utilizada.
+
+La dificultad deberá corresponder al perfil seleccionado.
+
+---
+
+#### TL;DR
+
+Deberá priorizar:
+
+- Conceptos principales.
+- Información esencial.
+- Síntesis del contenido.
+- Puntos relevantes para el perfil seleccionado.
+
+No deberá incorporar información que no esté sustentada por el contexto.
+
+---
+
+#### Tutorial
+
+Deberá organizar el contenido de manera progresiva.
+
+Podrá contemplar:
+
+- Objetivo.
+- Conceptos previos.
+- Explicación.
+- Ejemplos.
+- Pasos o procedimiento cuando estén presentes en la fuente.
+- Resumen.
+
+La estructura definitiva deberá ajustarse al formato aprobado para el MVP.
+
+---
+
+#### Mapa
+
+Cuando el formato sea implementado, deberá representar las relaciones principales entre los conceptos recuperados.
+
+La generación deberá priorizar:
+
+- Concepto principal.
+- Conceptos relacionados.
+- Relaciones.
+- Jerarquía.
+
+La tecnología utilizada posteriormente para visualizar el mapa corresponde a Frontend.
+
+---
+
+### 6.4 Consistencia de la salida
+
+La respuesta generada deberá cumplir la estructura esperada para el formato solicitado.
+
+Se deberá comprobar:
+
+- Campos obligatorios.
+- Tipos de datos.
+- Estructura.
+- Ausencia de campos inesperados cuando el contrato no los permita.
+- Presencia de fuentes.
+- Correspondencia entre perfil y formato.
+
+Una respuesta que no cumpla la estructura esperada deberá considerarse inválida para continuar directamente al siguiente paso.
+
+---
+
+### 6.5 Manejo de respuestas inválidas
+
+IA-06 deberá contemplar respuestas del LLM que:
+
+- No respeten el formato solicitado.
+- Contengan JSON inválido cuando se requiera JSON.
+- Omitan campos obligatorios.
+- Incluyan información incompleta.
+- Generen una estructura diferente a la esperada.
+
+Cuando sea posible, deberá realizarse una corrección controlada o una nueva generación.
+
+Si la respuesta continúa siendo inválida, deberá devolverse un estado controlado para evitar que información incorrecta avance silenciosamente hacia IA-07 o IA-08.
+
+---
+
+### 6.6 Control de información no sustentada
+
+El contenido generado deberá poder relacionarse con el contexto recuperado.
+
+Cuando una afirmación no pueda sustentarse en la información proporcionada por IA-05, deberá considerarse un posible problema de fidelidad.
+
+IA-06 deberá facilitar la posterior validación de IA-07 conservando:
+
+```text
+Contenido generado
+       ↓
+Fuentes utilizadas
+       ↓
+Chunks recuperados
+       ↓
+Documento original
+```
+
+IA-06 no será responsable de determinar definitivamente si una afirmación es fiel.
+
+Esa responsabilidad corresponde a IA-07.
+
+---
+
+### 6.7 Manejo de información insuficiente
+
+Si el contexto recuperado no contiene información suficiente para generar determinado contenido, IA-06 deberá evitar completar la respuesta mediante conocimiento no sustentado.
+
+Dependiendo del contrato definido, podrá:
+
+- Generar únicamente la parte sustentada.
+- Indicar explícitamente la falta de información.
+- Devolver un estado controlado para revisión.
+
+El comportamiento definitivo deberá validarse durante las pruebas.
+
+---
+
+### 6.8 Reintentos de generación
+
+Cuando una respuesta no cumpla los requisitos estructurales o de generación, podrá realizarse un reintento.
+
+Los reintentos deberán estar controlados para evitar ciclos indefinidos.
+
+La cantidad máxima de reintentos deberá definirse y validarse durante las pruebas.
+
+El Plan Maestro propone un flujo de generación y crítica con hasta **2 reintentos**, pero este valor deberá coordinarse con IA-07 y validarse antes de considerarlo definitivo. :contentReference[oaicite:0]{index=0}
+
+---
+
+### 6.9 Preparación para IA-07
+
+La salida de IA-06 deberá proporcionar a IA-07:
+
+- Contenido generado.
+- Perfil utilizado.
+- Formato utilizado.
+- Contexto utilizado.
+- Fuentes.
+- Referencias a chunks.
+- Estado de generación.
+
+Esto permitirá que IA-07 pueda evaluar posteriormente la fidelidad del contenido respecto de las fuentes.
+
+---
+
+### 6.10 Principio de separación de responsabilidades
+
+La responsabilidad de cada etapa deberá mantenerse claramente separada:
+
+| Actividad | Responsabilidad |
+|---|---|
+| Recuperar información | IA-05 |
+| Generar y adaptar contenido | IA-06 |
+| Validar fidelidad | IA-07 |
+| Construir salida final | IA-08 |
+
+IA-06 no deberá asumir como válida automáticamente toda respuesta generada por el LLM.
+
+La salida deberá pasar por el proceso de validación definido en IA-07 antes de considerarse contenido final.
+
+---
+
+## 7. Validación y pruebas de generación y adaptación
+
+La estrategia de generación deberá validarse utilizando los documentos, perfiles y formatos definidos para el MVP.
+
+El objetivo es comprobar que IA-06:
+
+- Utiliza correctamente el contexto recuperado.
+- Adapta el contenido al perfil solicitado.
+- Respeta el formato solicitado.
+- Mantiene el significado técnico.
+- Produce una estructura válida.
+- Conserva las fuentes utilizadas.
+- Maneja correctamente información insuficiente.
+- Entrega una salida procesable por IA-07.
+
+---
+
+### 7.1 Escenarios de prueba
+
+Las pruebas deberán utilizar los escenarios definidos para validar la adaptación del mismo conocimiento a diferentes perfiles y formatos.
+
+Como referencia inicial:
+
+| Escenario | Documento | Perfil | Formato |
+|---|---|---|---|
+| A | VCN de OCI | Junior | Flashcards |
+| B | JWT | Senior / Líder Técnico | Quiz |
+| C | Microservicios | Ejecutivo | Mapa + TL;DR |
+
+Estos escenarios representan una propuesta inicial y deberán ajustarse al alcance definitivo del MVP.
+
+---
+
+### 7.2 Prueba de adaptación por perfil
+
+Se deberá utilizar un mismo concepto o conjunto de información y solicitar su adaptación para diferentes perfiles.
+
+Ejemplo conceptual:
+
+```text
+Misma fuente
+     ↓
+ ┌───────────────┐
+ │               │
+Junior       Senior
+ │               │
+ ↓               ↓
+Explicación    Profundidad
+básica         técnica
+```
+
+Se deberá comprobar que:
+
+- El contenido mantiene los conceptos principales.
+- El nivel de profundidad cambia según el perfil.
+- El vocabulario se adapta.
+- La explicación corresponde al nivel solicitado.
+- No se introducen conceptos técnicos no sustentados por la fuente.
+
+---
+
+### 7.3 Prueba de adaptación por formato
+
+Se deberá utilizar información equivalente y solicitar diferentes formatos educativos.
+
+Por ejemplo:
+
+```text
+Mismo contexto
+      ↓
+ ┌────┼─────┐
+ ↓    ↓     ↓
+Quiz  Flashcards  TL;DR
+```
+
+Se deberá comprobar que cada formato:
+
+- Respete su estructura.
+- Presente la información de manera adecuada.
+- Mantenga los conceptos relevantes.
+- Conserve las fuentes.
+- No introduzca información ajena al contexto.
+
+---
+
+### 7.4 Prueba de fidelidad al contexto
+
+Se deberá comprobar que las afirmaciones generadas puedan relacionarse con la información proporcionada por IA-05.
+
+La evaluación deberá verificar:
+
+- Correspondencia con el contexto.
+- Ausencia de afirmaciones contradictorias.
+- Ausencia de datos inventados.
+- Conservación del significado técnico.
+- Uso correcto de términos técnicos.
+
+Esta prueba no sustituye la validación especializada de IA-07.
+
+---
+
+### 7.5 Prueba de información insuficiente
+
+Se deberá proporcionar al LLM un contexto que no contenga suficiente información para responder completamente.
+
+Resultado esperado:
+
+- El modelo no deberá inventar información.
+- Deberá reconocer la limitación cuando corresponda.
+- Deberá generar únicamente información sustentada.
+- Deberá producir un estado controlado cuando no sea posible completar la solicitud.
+
+Ejemplo conceptual:
+
+```text
+Contexto:
+Información parcial sobre VCN.
+
+Solicitud:
+Explicar una característica que no aparece
+en el documento.
+
+Resultado esperado:
+Indicar que la información disponible
+no es suficiente para responder.
+```
+
+---
+
+### 7.6 Prueba de estructura de salida
+
+Se deberá comprobar que la respuesta generada cumpla el formato esperado.
+
+Se deberán validar:
+
+- Campos obligatorios.
+- Tipos de datos.
+- Estructura.
+- Perfil.
+- Formato.
+- Contenido.
+- Fuentes.
+- Referencias de chunks cuando correspondan.
+
+Cuando el formato requiera JSON, deberá comprobarse que la respuesta sea un JSON válido y procesable.
+
+---
+
+### 7.7 Prueba de respuestas inválidas
+
+Se deberán evaluar respuestas del LLM que:
+
+- No respeten el formato solicitado.
+- Omitan campos obligatorios.
+- Generen JSON inválido.
+- Contengan estructuras inesperadas.
+- Devuelvan contenido incompleto.
+
+Se deberá comprobar que el sistema pueda:
+
+1. Detectar la respuesta inválida.
+2. Intentar una corrección o regeneración cuando corresponda.
+3. Evitar que una respuesta inválida continúe silenciosamente al siguiente proceso.
+4. Generar un estado controlado cuando el problema persista.
+
+---
+
+### 7.8 Prueba de reintentos
+
+Cuando se implemente un mecanismo de reintento, deberá verificarse:
+
+- Cuándo se activa.
+- Qué condición lo activa.
+- Qué información se modifica en el nuevo intento.
+- Cuántos intentos se permiten.
+- Qué ocurre cuando todos los intentos fallan.
+
+El Plan Maestro propone hasta **2 reintentos** dentro del flujo de generación/crítica. Este valor deberá coordinarse con IA-07 y validarse mediante pruebas. :contentReference[oaicite:0]{index=0}
+
+No deberán existir ciclos de generación indefinidos.
+
+---
+
+### 7.9 Prueba de consistencia
+
+Se deberán ejecutar varias generaciones utilizando:
+
+- El mismo documento.
+- El mismo perfil.
+- El mismo formato.
+
+Se deberá observar:
+
+- Consistencia de estructura.
+- Consistencia de contenido.
+- Variaciones esperadas del lenguaje.
+- Conservación de conceptos principales.
+- Ausencia de variaciones que cambien el significado técnico.
+
+Las variaciones propias de los modelos generativos deberán registrarse cuando afecten la evaluación.
+
+---
+
+### 7.10 Prueba de trazabilidad
+
+Cada contenido generado deberá conservar la relación:
+
+```text
+Contenido generado
+       ↓
+Contexto utilizado
+       ↓
+Chunks recuperados
+       ↓
+Documento original
+```
+
+Se deberá comprobar que IA-07 pueda utilizar esta información para realizar la validación de fidelidad.
+
+---
+
+### 7.11 Registro de resultados
+
+Cada prueba deberá registrar como mínimo:
+
+- Identificador del escenario.
+- Documento utilizado.
+- Perfil.
+- Formato.
+- Contexto utilizado.
+- Prompt/configuración utilizada.
+- Resultado generado.
+- Problemas encontrados.
+- Correcciones o reintentos realizados.
+- Resultado de la validación.
+- Observaciones.
+
+Los resultados deberán permitir comparar diferentes configuraciones de prompts y modelos cuando sea necesario.
+
+---
+
+### 7.12 Criterios de aceptación
+
+IA-06 podrá considerarse validada cuando:
+
+- El LLM pueda recibir correctamente el contexto de IA-05.
+- El contenido pueda adaptarse al perfil solicitado.
+- El contenido pueda generarse en los formatos definidos para el MVP.
+- La estructura de salida sea válida.
+- Las fuentes puedan conservarse.
+- Se hayan probado escenarios con información suficiente e insuficiente.
+- Se hayan evaluado respuestas inválidas.
+- Los reintentos estén controlados cuando sean necesarios.
+- Se haya evaluado la consistencia de las generaciones.
+- El contenido mantenga correspondencia con el contexto proporcionado.
+- La salida sea procesable por IA-07.
+- Los resultados de las pruebas estén registrados.
+
+La validación definitiva de fidelidad corresponde a IA-07.
+
+---
+
+## 8. Subtareas
+
+Las actividades de IA-06 se organizarán en las siguientes subtareas:
+
+- **IA-06.1** — Definir estrategia de interacción con el LLM.
+- **IA-06.2** — Diseñar estructura de prompts.
+- **IA-06.3** — Definir reglas de adaptación por perfil.
+- **IA-06.4** — Definir reglas de adaptación por formato.
+- **IA-06.5** — Integrar contexto proveniente de IA-05.
+- **IA-06.6** — Implementar generación de contenido.
+- **IA-06.7** — Implementar estructuración de salida.
+- **IA-06.8** — Implementar manejo de respuestas inválidas.
+- **IA-06.9** — Implementar control de información insuficiente.
+- **IA-06.10** — Implementar mecanismo de reintentos, cuando corresponda.
+- **IA-06.11** — Mantener fuentes y trazabilidad del contenido generado.
+- **IA-06.12** — Ejecutar pruebas de perfiles y formatos.
+- **IA-06.13** — Ejecutar escenarios A, B y C del MVP.
+- **IA-06.14** — Registrar resultados, problemas y decisiones.
+- **IA-06.15** — Preparar salida compatible con IA-07.
+
+---
+
+## 9. Decisiones pendientes
+
+Antes de considerar IA-06 completamente implementada deberán validarse, entre otras, las siguientes decisiones:
+
+### LLM
+
+- Proveedor de LLM.
+- Modelo definitivo.
+- Límites de uso.
+- Disponibilidad para el MVP.
+- Estrategia de fallback, si resulta necesaria.
+- Configuración de generación.
+
+La selección del modelo deberá realizarse mediante evaluación y no asumirse únicamente a partir de una propuesta inicial.
+
+### Prompts
+
+- Estructura definitiva del system prompt.
+- Instrucciones específicas por perfil.
+- Instrucciones específicas por formato.
+- Uso de few-shot.
+- Reglas para información insuficiente.
+- Reglas para evitar información no sustentada.
+- Formato de salida.
+
+### Perfiles
+
+Validar cuáles perfiles serán implementados realmente en el MVP.
+
+Como propuesta inicial:
+
+- Junior.
+- Senior / Líder Técnico.
+- Ejecutivo.
+
+### Formatos
+
+Validar cuáles formatos serán implementados realmente en el MVP.
+
+Como propuesta inicial:
+
+- Flashcards.
+- Quiz.
+- TL;DR.
+- Tutorial.
+- Mapa.
+
+El desafío establece como mínimo dos perfiles y dos formatos; por lo tanto, la implementación final deberá ajustarse al alcance que el equipo confirme para el MVP.
+
+### Generación y reintentos
+
+- Número máximo de reintentos.
+- Condiciones para activar un reintento.
+- Estrategia de corrección.
+- Comportamiento cuando todos los intentos fallen.
+
+### Salida
+
+- Schema definitivo.
+- Campos obligatorios.
+- Estructura por formato.
+- Información de fuentes.
+- Referencias a chunks.
+- Estados de error o generación incompleta.
+
+---
+
+## 10. Dependencias
+
+### Entrada principal
+
+**IA-05 — Retriever / RAG**
+
+Debe proporcionar:
+
+- Contexto relevante.
+- Chunks recuperados.
+- Fuentes.
+- Metadata.
+- Referencias necesarias para trazabilidad.
+
+### Salida principal
+
+**IA-07 — Validación IA**
+
+Recibirá:
+
+- Contenido generado.
+- Contexto utilizado.
+- Fuentes.
+- Referencias de chunks.
+- Perfil.
+- Formato.
+- Estado de generación.
+
+### Integración
+
+**IA-08 — Integración + JSON**
+
+Deberá recibir una salida estructurada y compatible con el contrato definido para el Backend.
+
+### Dependencias transversales
+
+IA-06 deberá mantenerse alineada con:
+
+- IA-03 — Chunking + Metadata.
+- IA-05 — Retriever / RAG.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+- Backend — contrato de integración.
+- Frontend — perfiles y formatos disponibles.
+
+---
+
+## 11. Fuera de alcance
+
+No corresponde a IA-06 implementar directamente:
+
+- Ingestión de documentos.
+- Extracción de PDF, Markdown o TXT.
+- Chunking.
+- Generación de embeddings.
+- Administración del Vector Store.
+- Recuperación semántica.
+- Validación definitiva de fidelidad.
+- Persistencia en OCI.
+- API Backend.
+- Interfaz Frontend.
+- Visualización final de mapas, quizzes o flashcards.
+
+Estas responsabilidades corresponden a otras actividades o equipos.
+
+IA-06 se concentra en:
+
+**Contexto recuperado → LLM → adaptación pedagógica → contenido estructurado → IA-07**
+
+---
+
+## 12. Definition of Done
+
+IA-06 se considerará completada cuando:
+
+- [ ] Se haya definido y validado la estrategia de interacción con el LLM.
+- [ ] Se haya definido la estructura de prompts.
+- [ ] Se hayan definido las reglas de adaptación por perfil.
+- [ ] Se hayan definido las reglas de adaptación por formato.
+- [ ] El contexto de IA-05 sea utilizado correctamente.
+- [ ] El contenido pueda generarse utilizando información recuperada mediante RAG.
+- [ ] La salida respete la estructura definida.
+- [ ] Las fuentes utilizadas puedan conservarse.
+- [ ] Se hayan implementado controles para información insuficiente.
+- [ ] Se hayan implementado controles para respuestas inválidas.
+- [ ] Los reintentos estén controlados, si se utilizan.
+- [ ] Se hayan probado los perfiles definidos para el MVP.
+- [ ] Se hayan probado los formatos definidos para el MVP.
+- [ ] Se hayan ejecutado los escenarios de prueba correspondientes.
+- [ ] Los resultados de las pruebas estén registrados.
+- [ ] La salida sea compatible con IA-07.
+- [ ] La salida pueda ser integrada posteriormente mediante IA-08.
+
+---
+
+## 13. Resultado esperado
+
+Al finalizar IA-06 deberá existir un flujo capaz de transformar:
+
+```text
+Contexto recuperado
+       +
+Perfil
+       +
+Formato
+       ↓
+Prompt estructurado
+       ↓
+LLM
+       ↓
+Contenido educativo adaptado
+       +
+Fuentes
+       +
+Trazabilidad
+       ↓
+IA-07 — Validación IA
+```
+
+El contenido generado no deberá considerarse contenido final hasta completar la validación correspondiente en IA-07.

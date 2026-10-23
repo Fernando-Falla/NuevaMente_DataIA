@@ -104,9 +104,6 @@ def nodo_critico(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
             "status": "evaluacion_completada"
         }
 
-    from nuevamente_ai.config import obtener_llm_adaptacion
-    llm = obtener_llm_adaptacion().with_structured_output(EvaluacionItems)
-
     contenido = "\n\n".join(
         f"=== ÍTEM {i} ===\n{json.dumps(item, ensure_ascii=False, indent=1)}" for i, item in enumerate(items)
     )
@@ -126,12 +123,15 @@ def nodo_critico(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
         f"--- CONTENIDO GENERADO ---\n{contenido}\n"
     )
 
+    from nuevamente_ai.config import obtener_llm_etapa
+    llm, limiter = obtener_llm_etapa("CRITICO", EvaluacionItems, temperatura=0.0, prompt_tokens=estimate_tokens(instruccion_juez))
+
     try:
         mensajes = [
             SystemMessage(content="Eres un juez riguroso contra las alucinaciones en material educativo técnico."),
             HumanMessage(content=instruccion_juez)
         ]
-        resultado = call_provider("CRITICO", lambda: llm.invoke(mensajes), estimate_tokens(instruccion_juez))
+        resultado = call_provider("CRITICO", lambda: llm.invoke(mensajes), estimate_tokens(instruccion_juez), limiter)
         veredictos = {v.indice: v for v in (resultado.items if resultado else []) if 0 <= v.indice < len(items)}
         # Un ítem omitido por el juez cuenta como parcial (R3)
         score = sum(PESO_VEREDICTO[veredictos[i].veredicto] if i in veredictos else 0.5 for i in range(len(items))) / len(items)

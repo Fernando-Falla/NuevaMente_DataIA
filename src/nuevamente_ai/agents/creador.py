@@ -7,7 +7,7 @@ import os
 from typing import Any, Dict
 from langchain_core.messages import SystemMessage, HumanMessage
 from nuevamente_ai.state import EstadoPipelineAdaptacion
-from nuevamente_ai.config import obtener_llm_adaptacion
+from nuevamente_ai.config import obtener_llm_etapa
 from nuevamente_ai.schemas import PaqueteContenidoAdaptado
 from dataia.common.budget import estimate_tokens
 from dataia.common.providers import call_provider
@@ -54,11 +54,13 @@ def nodo_creador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
 
     # Invocar LLM con salida tipada estructurada
     try:
-        llm = obtener_llm_adaptacion(temperatura=0.3)
-        structured_llm = llm.with_structured_output(PaqueteContenidoAdaptado)
+        structured_llm, limiter = obtener_llm_etapa(
+            "GENERACION", PaqueteContenidoAdaptado, temperatura=0.3,
+            prompt_tokens=estimate_tokens(prompt_sistema + instruccion_usuario),
+        )
         mensajes = [SystemMessage(content=prompt_sistema), HumanMessage(content=instruccion_usuario)]
         resultado: PaqueteContenidoAdaptado = call_provider(
-            "GENERADOR", lambda: structured_llm.invoke(mensajes), estimate_tokens(prompt_sistema + instruccion_usuario)
+            "GENERADOR", lambda: structured_llm.invoke(mensajes), estimate_tokens(prompt_sistema + instruccion_usuario), limiter
         )
         borrador_dict = resultado.model_dump()
     except Exception as e:

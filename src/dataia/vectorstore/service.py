@@ -1,7 +1,7 @@
 from dataia.common.models import ChunkingResult, VectorStoreResponse, VectorStoreResult, VectorStoreError
 import os
 from dataia.common.providers import is_provider_error
-from dataia.vectorstore.client import insert_chunks, save_document_record, COLLECTION_NAME
+from dataia.vectorstore.client import collection_name, insert_chunks, save_document_record
 
 def process_vectorstore(chunking_result: ChunkingResult) -> VectorStoreResponse:
     """
@@ -28,7 +28,7 @@ def process_vectorstore(chunking_result: ChunkingResult) -> VectorStoreResponse:
         return VectorStoreResult(
             document_id=chunking_result.document_id,
             chunks_inserted=len(chunking_result.chunks),
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name(),
             already_indexed=already_indexed
         )
 

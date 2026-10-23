@@ -1,0 +1,438 @@
+# IA-01 — Diseñar flujo IA
+
+## 🎯 Objetivo
+
+Definir el flujo funcional y técnico de Data & IA para NuevaMente, estableciendo cómo se procesa un documento técnico desde su ingreso hasta la generación y validación del contenido educativo adaptado.
+
+Esta Issue servirá como referencia para organizar las actividades IA-02 a IA-08 y para alinear las dependencias necesarias con Backend y Frontend.
+
+---
+
+## 🧩 Alcance
+
+El flujo general propuesto para Data & IA es:
+
+Documento técnico
+↓
+Ingestión y validación
+↓
+Extracción y normalización
+↓
+Chunking + Metadata
+↓
+Embeddings
+↓
+Vector Store
+↓
+Retriever / RAG
+↓
+Contexto relevante
+↓
+LLM
+↓
+Adaptación pedagógica
+↓
+Validación de fidelidad
+↓
+Formato estructurado
+↓
+JSON de salida
+
+El flujo deberá permitir adaptar un mismo documento técnico según diferentes perfiles y formatos educativos definidos para el MVP.
+
+### Relación con las actividades IA
+
+| Etapa | Actividad |
+|---|---|
+| Ingestión y validación | IA-02 |
+| Chunking + Metadata | IA-03 |
+| Embeddings + Vector Store | IA-04 |
+| Retriever / RAG | IA-05 |
+| LLM + Adaptación | IA-06 |
+| Validación IA | IA-07 |
+| Integración + JSON | IA-08 |
+
+### Principio de trabajo
+
+IA-01 define el flujo y las responsabilidades generales.
+
+Las decisiones técnicas específicas se validarán posteriormente en las actividades IA-02 a IA-08.
+
+Por lo tanto, las tecnologías, modelos, parámetros y configuraciones indicados como propuestas no deben considerarse decisiones definitivas hasta ser evaluados y aprobados por el equipo Data & IA.
+
+---
+
+## 3. Entradas del flujo IA
+
+Data & IA deberá definir y validar los parámetros mínimos necesarios para ejecutar una adaptación de contenido educativo.
+
+### 3.1 Documento técnico
+
+El flujo deberá contemplar como entrada documentos en los siguientes formatos:
+
+- PDF
+- Markdown
+- TXT
+
+El documento deberá llegar al componente de Data & IA de acuerdo con el contrato que se defina conjuntamente con Backend.
+
+La responsabilidad sobre:
+
+- recepción del archivo,
+- almacenamiento del documento original,
+- extracción del contenido,
+- normalización del texto
+
+deberá quedar alineada entre Backend y Data & IA.
+
+La definición específica se resolverá principalmente en:
+
+- IA-02 — Ingestión y validación de documentos
+- BE-01 — Contrato archivo ↔ texto
+
+---
+
+### 3.2 Parámetros de adaptación
+
+La solicitud deberá proporcionar los parámetros necesarios para determinar cómo debe adaptarse el contenido.
+
+Como mínimo se deberá considerar:
+
+- Perfil del usuario.
+- Formato educativo.
+- Contexto o nicho, cuando corresponda.
+
+Estos parámetros serán utilizados posteriormente por el flujo de adaptación y por el sistema de prompts.
+
+---
+
+### 3.3 Perfil del usuario
+
+El perfil determina el nivel y enfoque con el que deberá presentarse el contenido.
+
+El Plan Maestro propone inicialmente:
+
+- Junior
+- Senior
+- Ejecutivo
+
+Esta propuesta deberá validarse con el equipo y alinearse con el alcance definitivo del MVP.
+
+La cantidad y definición final de perfiles se resolverá principalmente en:
+
+- IA-06 — LLM + Adaptación
+- FE-02 — Carga y configuración del documento
+
+---
+
+### 3.4 Formato educativo
+
+El formato determina cómo deberá estructurarse el contenido generado.
+
+El Plan Maestro propone inicialmente:
+
+- Flashcards
+- Quiz
+- Mapa / Mind Map
+
+La selección definitiva deberá validarse considerando el alcance del MVP y las capacidades de Frontend.
+
+La definición deberá coordinarse principalmente entre:
+
+- IA-06 — LLM + Adaptación
+- IA-08 — Integración + JSON
+- FE-03 — Visualización del contenido educativo
+
+---
+
+### 3.5 Contexto o nicho
+
+Cuando corresponda, la solicitud podrá incluir información adicional sobre el contexto o nicho en el que se utilizará el contenido.
+
+Este parámetro deberá evaluarse para determinar:
+
+- Si forma parte del MVP.
+- Si es obligatorio u opcional.
+- Cómo será utilizado por los prompts.
+- Cómo será enviado desde Frontend hacia Backend y posteriormente hacia Data & IA.
+
+---
+
+### 3.6 Consideraciones para las entradas
+
+Antes de cerrar IA-01 deberán quedar definidos:
+
+- Formatos de documento aceptados.
+- Parámetros obligatorios.
+- Parámetros opcionales.
+- Perfiles incluidos en el MVP.
+- Formatos educativos incluidos en el MVP.
+- Uso del contexto o nicho.
+- Contrato entre Backend y Data & IA.
+- Validaciones iniciales de los parámetros.
+
+Las validaciones específicas de contenido y pertinencia técnica corresponden a IA-02.
+
+IA-01 únicamente define qué información necesita el flujo para poder ejecutarse.
+
+---
+
+## 4. Flujo detallado de Data & IA
+
+El flujo de Data & IA se organiza en etapas consecutivas. Cada etapa recibe una entrada, realiza una responsabilidad específica y entrega la información necesaria para la siguiente etapa.
+
+### 4.1 Ingestión y validación
+
+Recibir el documento técnico y determinar si puede ser procesado por NuevaMente.
+
+El proceso contempla:
+
+- Validar el formato del documento.
+- Extraer el contenido.
+- Normalizar el texto.
+- Validar que exista contenido procesable.
+- Evaluar la pertinencia técnica del documento.
+- Generar metadata y referencias necesarias para mantener la trazabilidad.
+
+**Salida esperada:**
+
+Texto normalizado + metadata del documento.
+
+**Responsable principal:**
+
+IA-02 — Ingestión y validación de documentos.
+
+---
+
+### 4.2 Chunking + Metadata
+
+Dividir el contenido normalizado en fragmentos adecuados para su posterior procesamiento y recuperación semántica.
+
+El Plan Maestro propone inicialmente:
+
+- Chunk size: 800 tokens.
+- Overlap: 150 tokens.
+- Separadores jerárquicos/contextuales.
+- Metadata asociada a cada chunk.
+
+Estos valores representan una configuración inicial y deberán validarse mediante pruebas antes de considerarlos definitivos.
+
+**Salida esperada:**
+
+Colección de chunks con contenido, identificadores y metadata de trazabilidad.
+
+**Responsable principal:**
+
+IA-03 — Chunking + Metadata.
+
+---
+
+### 4.3 Embeddings + Vector Store
+
+Transformar los chunks en representaciones vectoriales y almacenarlos en un Vector Store para permitir búsquedas semánticas.
+
+El Plan Maestro contempla:
+
+- ChromaDB como Vector Store.
+- Gemini y FastEmbed como alternativas para generación de embeddings.
+
+La selección definitiva deberá considerar, entre otros aspectos:
+
+- Calidad de recuperación.
+- Soporte de idioma.
+- Recursos necesarios.
+- Dependencia de servicios externos.
+- Cuotas.
+- Costos.
+- Facilidad de integración.
+- Persistencia.
+
+**Salida esperada:**
+
+Vector Store con embeddings, contenido y metadata asociados.
+
+**Responsable principal:**
+
+IA-04 — Embeddings + Vector Store.
+
+---
+
+### 4.4 Retriever / RAG
+
+Utilizar el Vector Store para recuperar la información más relevante para una determinada consulta o solicitud de adaptación.
+
+Flujo conceptual:
+
+Consulta
+↓
+Preparación de la consulta
+↓
+Embedding de la consulta
+↓
+Búsqueda semántica
+↓
+Resultados candidatos
+↓
+Evaluación de relevancia
+↓
+Selección de contexto
+↓
+Contexto para el LLM
+
+La estrategia de recuperación deberá definir y validar parámetros como:
+
+- Top-K.
+- Umbral de relevancia.
+- Criterios para determinar contexto suficiente.
+- Manejo de consultas sin información relevante.
+- Trazabilidad de los chunks recuperados.
+
+**Salida esperada:**
+
+Contexto relevante y trazable para utilizar durante la generación.
+
+**Responsable principal:**
+
+IA-05 — Retriever / RAG.
+
+---
+
+### 4.5 LLM + Adaptación pedagógica
+
+Utilizar el contexto recuperado para generar contenido educativo adaptado a los parámetros recibidos.
+
+La adaptación deberá considerar:
+
+- Perfil del usuario.
+- Formato educativo.
+- Contexto o nicho, cuando corresponda.
+- Información recuperada mediante RAG.
+- Instrucciones pedagógicas.
+- Reglas definidas mediante prompts.
+- Ejemplos Few-Shot cuando sean utilizados.
+
+El objetivo es que un mismo documento técnico pueda producir diferentes resultados dependiendo de la configuración solicitada.
+
+**Salida esperada:**
+
+Borrador de contenido educativo adaptado.
+
+**Responsable principal:**
+
+IA-06 — LLM + Adaptación.
+
+---
+
+### 4.6 Validación de fidelidad
+
+El contenido generado deberá ser evaluado antes de considerarse resultado final.
+
+La validación deberá comprobar que el contenido generado mantenga relación suficiente con la información disponible en las fuentes recuperadas.
+
+El Plan Maestro propone:
+
+- Evaluación mediante `anclaje_fuente_score`.
+- Umbral inicial de `0.85`.
+- Hasta 2 iteraciones de corrección.
+
+Estos valores son una propuesta inicial y deberán validarse mediante pruebas.
+
+Cuando el resultado no cumpla los criterios definidos, el flujo deberá determinar si:
+
+- Se puede corregir mediante una nueva generación.
+- Se requiere información adicional.
+- El contexto recuperado es insuficiente.
+- Debe devolverse un resultado controlado indicando la limitación.
+
+**Salida esperada:**
+
+Contenido validado o resultado controlado indicando que no se pudo alcanzar el nivel requerido.
+
+**Responsable principal:**
+
+IA-07 — Validación IA.
+
+---
+
+### 4.7 Integración y estructuración del resultado
+
+Una vez generado y validado el contenido, Data & IA deberá entregar una respuesta estructurada que pueda ser consumida por Backend y posteriormente presentada por Frontend.
+
+La salida deberá permitir identificar, según corresponda:
+
+- Estado del procesamiento.
+- Tipo de contenido.
+- Perfil utilizado.
+- Contenido educativo.
+- Metadata.
+- Información de validación.
+- Referencia al documento fuente.
+- Información necesaria para trazabilidad.
+
+La estructura definitiva del JSON deberá acordarse entre Data & IA y Backend.
+
+**Salida esperada:**
+
+JSON estructurado conforme al contrato acordado.
+
+**Responsable principal:**
+
+IA-08 — Integración + JSON.
+
+---
+
+### 4.8 Flujo completo
+
+De forma resumida, el proceso queda:
+
+Documento
+↓
+IA-02 — Ingestión y validación
+↓
+IA-03 — Chunking + Metadata
+↓
+IA-04 — Embeddings + Vector Store
+↓
+IA-05 — Retriever / RAG
+↓
+IA-06 — LLM + Adaptación
+↓
+IA-07 — Validación IA
+↓
+IA-08 — Integración + JSON
+↓
+Backend
+↓
+Frontend
+
+Este flujo representa la arquitectura funcional de Data & IA. Las decisiones concretas de tecnologías, modelos, parámetros y mecanismos de implementación deberán validarse en las correspondientes actividades.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+
+**Participación / validación:**
+- Fernando Falla — Data Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gobernanza
+
+### Responsabilidad de IA-01
+
+El responsable principal deberá coordinar la definición del flujo técnico de Data & IA y validar que las etapas, dependencias, entradas y salidas sean coherentes con la arquitectura del proyecto.
+
+La definición deberá revisarse con el resto del equipo Data & IA antes de considerarse cerrada, especialmente en los puntos que afectan:
+
+- Ingestión y procesamiento documental.
+- Chunking y metadata.
+- Embeddings y Vector Store.
+- Retriever / RAG.
+- LLM y adaptación.
+- Validación de fidelidad.
+- Estructura de salida.
+- Integración con Backend y Frontend.
+
+> Nota: La asignación de responsabilidades se basa en los roles definidos en el Plan Maestro. Las responsabilidades específicas de cada IA-02 a IA-08 deberán mantenerse alineadas con la organización acordada en el proyecto.

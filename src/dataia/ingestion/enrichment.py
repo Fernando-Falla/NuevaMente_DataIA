@@ -7,7 +7,7 @@ from typing import List
 from dataia.common.budget import doc_metadata_max_tokens, estimate_tokens
 from dataia.common.credentials import get_google_api_key
 from dataia.common.models import DocumentPedagogicalMetadata, ExtractedContent
-from dataia.common.providers import call_provider, create_gemini_llm
+from dataia.common.providers import call_provider, create_stage_llm
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +72,6 @@ def enrich_document_metadata(document_id: str, document_digest: str) -> Document
             pass
 
     try:
-        llm = create_gemini_llm(api_key=get_google_api_key())
-        structured_llm = llm.with_structured_output(DocumentPedagogicalMetadata)
-
         prompt = (
             "Extrae la metadata pedagógica del siguiente documento y clasifica su dominio.\n"
             "Dominios: 'TI' (software, redes, nube, datos, ciberseguridad), 'Fintech' (pagos, banca digital, "
@@ -85,8 +82,11 @@ def enrich_document_metadata(document_id: str, document_digest: str) -> Document
             f"El ID del documento es: {document_id}\n\n"
             f"Documento:\n{document_digest}\n"
         )
+        structured_llm, limiter = create_stage_llm(
+            "CLASIFICACION", DocumentPedagogicalMetadata, gemini_api_key=get_google_api_key(), prompt_tokens=estimate_tokens(prompt)
+        )
 
-        result = call_provider("ENRIQUECIMIENTO_DOCUMENTO", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt))
+        result = call_provider("ENRIQUECIMIENTO_DOCUMENTO", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt), limiter)
         if result is None:
             raise ValueError("El LLM no devolvió metadata válida.")
 

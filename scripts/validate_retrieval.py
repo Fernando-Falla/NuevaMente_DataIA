@@ -18,7 +18,8 @@ except ImportError:
     pass
 
 from dataia.vectorstore.client import get_vector_store
-from langchain_google_genai import ChatGoogleGenerativeAI
+from dataia.common.credentials import get_google_api_key
+from dataia.common.providers import create_gemini_llm
 
 class RelevanceJudgement(BaseModel):
     is_relevant: bool = Field(description="True si el chunk contiene información útil y directa para responder la consulta.")
@@ -53,12 +54,14 @@ QUERIES = [
 
 def evaluate_relevance(query: str, chunk_text: str) -> bool:
     try:
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+        # Modelo configurable (GEMINI_MODEL): gemini-2.5-flash ya no está disponible para claves nuevas
+        llm = create_gemini_llm(api_key=get_google_api_key())
         structured_llm = llm.with_structured_output(RelevanceJudgement)
         prompt = f"Consulta: {query}\n\nFragmento de texto:\n{chunk_text}\n\n¿Este fragmento responde o contiene información relevante para la consulta?"
         result = structured_llm.invoke(prompt)
         return result.is_relevant
-    except Exception:
+    except Exception as error:
+        print(f"⚠️ Juez LLM no disponible ({type(error).__name__}); se usa la heurística de palabras clave.")
         return any(word.lower() in chunk_text.lower() for word in query.split() if len(word) > 4)
 
 def main():

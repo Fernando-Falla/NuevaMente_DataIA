@@ -6,7 +6,7 @@ Soporta Google Gemini (vía langchain-google-genai) con failover automático a G
 import os
 from typing import Optional
 from dotenv import load_dotenv
-from dataia.common.providers import create_gemini_llm, provider_limits
+from dataia.common.providers import create_gemini_llm, create_stage_llm, provider_limits
 
 try:
     # Habilitar caché global en memoria para ahorrar tokens
@@ -68,3 +68,15 @@ def obtener_llm_adaptacion(temperatura: float = 0.3, provider_override: Optional
 def obtener_llm_critico():
     """Retorna un modelo determinista (temperatura=0.0) para el Agente Crítico de Calidad."""
     return obtener_llm_adaptacion(temperatura=0.0)
+
+
+def obtener_llm_etapa(etapa: str, esquema=None, temperatura: float = 0.0, prompt_tokens: int = 0):
+    """
+    Modelo de una etapa del grafo (GENERACION o CRITICO) con salida estructurada,
+    y el limitador de ritmo de su proveedor. El proveedor se elige con
+    IA_PROVIDER_<ETAPA> (gemini o groq); si es Groq, Gemini queda de respaldo y
+    recibe directamente los prompts que no caben en la cuota por minuto de Groq.
+    """
+    if not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
+        raise ValueError("GEMINI_API_KEY no encontrada en el entorno. Configure .env")
+    return create_stage_llm(etapa, esquema, temperatura, prompt_tokens=prompt_tokens)

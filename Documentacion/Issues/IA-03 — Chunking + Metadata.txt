@@ -1,0 +1,889 @@
+# IA-03 — Chunking + Metadata
+
+## 🎯 Objetivo
+
+Implementar y validar la segmentación del contenido normalizado en fragmentos (chunks) adecuados para las etapas posteriores de embeddings, almacenamiento vectorial y recuperación mediante RAG.
+
+Cada chunk deberá conservar la información necesaria para mantener la trazabilidad con el documento de origen.
+
+---
+
+## 🧩 Alcance
+
+IA-03 recibirá como entrada el contenido normalizado generado por IA-02 y realizará:
+
+- Definición de la estrategia de chunking.
+- Segmentación del contenido.
+- Evaluación del tamaño de los chunks.
+- Evaluación del overlap.
+- Conservación de la estructura contextual del documento.
+- Generación de metadata por chunk.
+- Identificación única de cada chunk.
+- Mantenimiento de la relación entre documento y chunks.
+- Validación de la calidad de los chunks.
+- Preparación de los datos para IA-04.
+
+Flujo general:
+
+Documento normalizado
+↓
+Definir estrategia de chunking
+↓
+Segmentar contenido
+↓
+Evaluar tamaño y contexto
+↓
+Generar metadata
+↓
+Mantener trazabilidad
+↓
+Validar chunks
+↓
+Chunks preparados
+↓
+IA-04 — Embeddings + Vector Store
+
+---
+
+## 📥 Entrada
+
+IA-03 recibirá desde IA-02:
+
+- Texto normalizado.
+- `document_id`.
+- Nombre o referencia del documento.
+- Tipo de documento.
+- Información de origen.
+- Metadata disponible.
+- Referencias de página o sección cuando existan.
+
+La información recibida deberá conservarse durante la segmentación para evitar pérdida de trazabilidad.
+
+---
+
+## 📤 Salida
+
+IA-03 deberá entregar una colección de chunks preparados para generar embeddings.
+
+Cada chunk deberá contener como mínimo:
+
+- `document_id`
+- `chunk_id`
+- Contenido del chunk.
+- Metadata asociada.
+- Información de origen disponible.
+- Referencia de página o sección cuando corresponda.
+
+La salida deberá ser compatible con IA-04 — Embeddings + Vector Store.
+
+---
+
+## ⚙️ Configuración inicial propuesta
+
+El Plan Maestro propone inicialmente:
+
+- Chunk size: **800 tokens**
+- Overlap: **150 tokens**
+- Separadores jerárquicos/contextuales.
+
+Estos valores representan una configuración inicial de trabajo.
+
+No deberán considerarse definitivos hasta realizar pruebas con los documentos técnicos del MVP y evaluar si el tamaño de los chunks permite conservar suficiente contexto para la recuperación semántica.
+
+---
+
+## 👤 Responsabilidad
+
+**Equipo responsable:** Data & IA
+
+**Responsable principal:** Fernando Falla — Data Engineer
+
+**Participación / validación:**
+
+- Marcos Gael Hernández Cruz — Líder IA / AI Engineer
+- Andy Mijail Martinez Solis — Data Analyst / Prompt QA
+- Jacqueline Rioja — Apoyo IA y Gestión de Datos
+
+La responsabilidad principal comprende definir, implementar y validar la estrategia de chunking y garantizar que los chunks mantengan la trazabilidad necesaria para las etapas posteriores del pipeline.
+
+---
+
+## 🔗 Dependencias
+
+### Entrada
+
+**IA-02 — Ingestión y validación de documentos**
+
+Proporciona el contenido normalizado y la metadata inicial del documento.
+
+### Salida
+
+**IA-04 — Embeddings + Vector Store**
+
+Recibe los chunks preparados para generar embeddings y almacenarlos en el Vector Store.
+
+### Dependencias transversales
+
+La estrategia deberá mantenerse alineada con:
+
+- IA-05 — Retriever / RAG.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+
+
+---
+
+## 4. Estrategia de Chunking
+
+La estrategia de chunking deberá dividir el contenido normalizado en fragmentos que conserven suficiente contexto para permitir una recuperación semántica útil durante el proceso RAG.
+
+El objetivo no es únicamente dividir el texto, sino encontrar un equilibrio entre:
+
+- Tamaño suficiente para conservar contexto.
+- Tamaño suficientemente pequeño para permitir una recuperación precisa.
+- Conservación de la estructura del documento.
+- Reducción de fragmentación innecesaria.
+- Trazabilidad hacia la fuente original.
+
+---
+
+### 4.1 Tamaño inicial de los chunks
+
+Como configuración inicial se propone:
+
+- **Chunk size:** 800 tokens.
+- **Overlap:** 150 tokens.
+
+Esta configuración proviene del Plan Maestro y deberá considerarse una hipótesis inicial de trabajo.
+
+No deberá considerarse definitiva hasta realizar pruebas con los documentos técnicos del MVP.
+
+---
+
+### 4.2 Overlap
+
+El overlap deberá permitir conservar contexto entre chunks consecutivos.
+
+Configuración inicial propuesta:
+
+**150 tokens de overlap.**
+
+Ejemplo conceptual:
+
+```text
+Chunk 1
+[---------------- 800 tokens ----------------]
+
+                    ← 150 tokens →
+                         ↓
+Chunk 2
+              [---------------- 800 tokens ----------------]
+```
+
+El overlap deberá evaluarse para determinar si:
+
+- Conserva adecuadamente el contexto.
+- Evita pérdida de información entre fragmentos.
+- No genera duplicación excesiva.
+- No incrementa innecesariamente la cantidad de embeddings.
+
+---
+
+### 4.3 Separadores jerárquicos
+
+La segmentación deberá intentar respetar la estructura natural del documento.
+
+Se deberán priorizar, cuando estén disponibles:
+
+1. Títulos.
+2. Subtítulos.
+3. Secciones.
+4. Párrafos.
+5. Saltos de línea.
+6. Oraciones.
+7. Separación por tokens como último recurso.
+
+El objetivo es evitar dividir innecesariamente una unidad conceptual.
+
+Por ejemplo, cuando una sección técnica pueda mantenerse completa dentro del límite definido, deberá preferirse conservarla como unidad contextual antes que dividirla arbitrariamente.
+
+---
+
+### 4.4 Conservación del contexto
+
+Durante la segmentación deberá evitarse que un chunk pierda información necesaria para comprender su contenido.
+
+Cuando corresponda, se deberá conservar información contextual como:
+
+- Título de la sección.
+- Subtítulo.
+- Encabezado.
+- Referencia de página.
+- Identificador del documento.
+- Relación con la sección de origen.
+
+Esto permitirá que un chunk pueda ser interpretado correctamente incluso cuando sea recuperado de manera independiente.
+
+---
+
+### 4.5 Casos especiales
+
+La estrategia deberá contemplar documentos que contengan:
+
+- Secciones muy extensas.
+- Secciones muy pequeñas.
+- Listas.
+- Tablas.
+- Código.
+- Ejemplos técnicos.
+- Encabezados sin contenido inmediato.
+- Párrafos muy extensos.
+- Contenido con estructura irregular.
+
+Estos casos deberán ser incluidos en las pruebas para determinar si la estrategia inicial requiere ajustes.
+
+---
+
+### 4.6 Chunks demasiado pequeños
+
+Se deberá evaluar cómo tratar fragmentos que resulten demasiado pequeños para aportar contexto suficiente.
+
+Cuando sea posible, se deberá considerar su combinación con contenido relacionado en lugar de generar múltiples chunks sin información suficiente.
+
+La regla concreta deberá definirse durante las pruebas.
+
+---
+
+### 4.7 Chunks demasiado grandes
+
+Cuando una unidad lógica supere el tamaño máximo establecido, deberá dividirse utilizando los separadores disponibles, intentando mantener la mayor coherencia contextual posible.
+
+La división deberá conservar:
+
+- Identificación del documento.
+- Referencia de sección.
+- Información de origen.
+- Orden del contenido.
+
+---
+
+### 4.8 Identificación de los chunks
+
+Cada chunk deberá contar con un identificador único relacionado con el documento de origen.
+
+Ejemplo conceptual:
+
+```text
+document_id: doc-001
+chunk_id: doc-001-chunk-003
+```
+
+La relación deberá mantenerse durante las siguientes etapas:
+
+```text
+document_id
+    ↓
+chunk_id
+    ↓
+embedding
+    ↓
+resultado de recuperación
+```
+
+---
+
+### 4.9 Evaluación de la estrategia
+
+La configuración inicial deberá evaluarse utilizando documentos reales del MVP.
+
+Las pruebas deberán analizar:
+
+- Calidad del contexto.
+- Coherencia de los chunks.
+- Pérdida de información.
+- Duplicación producida por el overlap.
+- Cantidad total de chunks.
+- Conservación de títulos y secciones.
+- Conservación de información técnica.
+- Calidad posterior de la recuperación.
+
+Si los resultados muestran que `800 / 150` no es adecuado, el equipo podrá ajustar estos valores.
+
+La configuración final deberá basarse en los resultados obtenidos y quedar registrada en la Issue.
+
+---
+
+## 5. Metadata y trazabilidad de los chunks
+
+Cada chunk generado deberá conservar la información necesaria para identificar su origen y relacionarlo posteriormente con los embeddings y los resultados de recuperación.
+
+El objetivo es mantener la trazabilidad durante todo el pipeline:
+
+Documento → Chunk → Embedding → Recuperación → Fuente
+
+---
+
+### 5.1 Metadata mínima del chunk
+
+Cada chunk deberá contar, como mínimo, con:
+
+- `document_id`
+- `chunk_id`
+- Contenido del chunk.
+- Fuente del documento.
+- Tipo de documento.
+- Página, cuando esté disponible.
+- Sección, cuando esté disponible.
+
+La metadata podrá ampliarse cuando sea necesario para mejorar la recuperación, trazabilidad o validación.
+
+---
+
+### 5.2 Identificación del chunk
+
+Cada chunk deberá tener un identificador único dentro del documento.
+
+Ejemplo conceptual:
+
+```text
+document_id: doc-001
+chunk_id: doc-001-chunk-003
+```
+
+El `chunk_id` deberá permitir relacionar el fragmento con su documento de origen.
+
+---
+
+### 5.3 Ejemplo conceptual
+
+Una representación inicial de la información de un chunk podría ser:
+
+```json
+{
+  "document_id": "doc-001",
+  "chunk_id": "doc-001-chunk-003",
+  "source": "vcn.pdf",
+  "page": 4,
+  "section": "Redes Virtuales",
+  "content": "Contenido del fragmento..."
+}
+```
+
+Este ejemplo es conceptual.
+
+El schema definitivo deberá alinearse posteriormente con las estructuras utilizadas por:
+
+- IA-04 — Embeddings + Vector Store.
+- IA-05 — Retriever / RAG.
+- IA-07 — Validación IA.
+- IA-08 — Integración + JSON.
+
+---
+
+### 5.4 Relación Documento → Chunk
+
+Un documento podrá generar múltiples chunks.
+
+Ejemplo:
+
+```text
+doc-001
+│
+├── doc-001-chunk-001
+├── doc-001-chunk-002
+├── doc-001-chunk-003
+├── doc-001-chunk-004
+└── ...
+```
+
+Cada chunk deberá conservar la referencia a `document_id`.
+
+Esto permitirá posteriormente identificar de qué documento provino un resultado recuperado.
+
+---
+
+### 5.5 Orden y contexto
+
+Cuando sea relevante, deberá conservarse información que permita reconstruir el orden lógico de los chunks.
+
+Se podrá considerar información como:
+
+- Índice del chunk.
+- Página.
+- Sección.
+- Posición dentro del documento.
+
+Esto será especialmente importante cuando una consulta recupere varios chunks pertenecientes a diferentes partes del mismo documento.
+
+---
+
+### 5.6 Trazabilidad hacia Embeddings
+
+La información generada en IA-03 deberá permitir que IA-04 mantenga la relación:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Embedding
+```
+
+El embedding no deberá perder la referencia al contenido y metadata que le dieron origen.
+
+---
+
+### 5.7 Trazabilidad hacia RAG
+
+Posteriormente, cuando IA-05 realice una búsqueda, el resultado deberá poder identificar:
+
+- Qué chunk fue recuperado.
+- De qué documento proviene.
+- Qué contenido contiene.
+- Qué metadata estaba asociada.
+- Qué referencia de origen puede mostrarse.
+
+La responsabilidad de IA-03 es garantizar que esta información exista y acompañe correctamente al chunk.
+
+---
+
+### 5.8 Trazabilidad para validación
+
+La información de origen deberá estar disponible para que IA-07 pueda utilizarla durante la validación de fidelidad.
+
+La relación esperada es:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Contexto recuperado
+   ↓
+Contenido generado
+   ↓
+Validación contra la fuente
+```
+
+IA-03 no realiza la validación de fidelidad.
+
+Su responsabilidad es proporcionar la información necesaria para que las etapas posteriores puedan realizarla.
+
+---
+
+### 5.9 Reglas de trazabilidad
+
+La implementación deberá garantizar:
+
+- Cada chunk pertenece a un documento identificado.
+- Cada chunk posee un identificador único.
+- La metadata acompaña al chunk durante las siguientes etapas.
+- La referencia al documento no se pierde al generar embeddings.
+- La información de origen puede recuperarse posteriormente.
+- Las limitaciones de trazabilidad deberán registrarse.
+
+---
+
+### 5.10 Criterio de aceptación
+
+IA-03 deberá permitir responder, para cualquier chunk generado:
+
+- ¿A qué documento pertenece?
+- ¿Cuál es su identificador?
+- ¿Qué contenido contiene?
+- ¿De qué página o sección proviene, cuando esté disponible?
+- ¿Qué información podrá utilizarse posteriormente para identificar su fuente?
+
+Si alguna información no puede obtenerse debido a las características del documento o formato, deberá registrarse la limitación y evaluarse su impacto en las etapas posteriores.
+
+---
+
+## 6. Validación y pruebas del Chunking
+
+La estrategia de chunking deberá validarse utilizando documentos técnicos representativos del MVP.
+
+El objetivo es comprobar que los chunks generados mantengan suficiente contexto, sean adecuados para embeddings y permitan posteriormente una recuperación relevante mediante RAG.
+
+---
+
+### 6.1 Documentos de prueba
+
+Se deberán utilizar documentos técnicos representativos, incluyendo como referencia:
+
+- VCN de OCI.
+- JWT.
+- Microservicios.
+
+Estos documentos deberán permitir evaluar diferentes estructuras y niveles de complejidad técnica.
+
+La selección definitiva de documentos de prueba deberá ser validada por el equipo Data & IA.
+
+---
+
+### 6.2 Validación del tamaño de los chunks
+
+La configuración inicial propuesta es:
+
+- Chunk size: 800 tokens.
+- Overlap: 150 tokens.
+
+Se deberá comprobar mediante pruebas:
+
+- Cantidad total de chunks generados.
+- Distribución del tamaño de los chunks.
+- Pérdida de información.
+- Conservación del contexto.
+- Fragmentación de conceptos.
+- Duplicación producida por el overlap.
+
+Si los resultados muestran problemas, los parámetros podrán ajustarse.
+
+---
+
+### 6.3 Validación de la estructura contextual
+
+Los chunks deberán evaluarse para determinar si conservan correctamente la estructura lógica del documento.
+
+Se deberá comprobar, cuando corresponda:
+
+- Títulos.
+- Subtítulos.
+- Secciones.
+- Párrafos.
+- Listas.
+- Tablas.
+- Código.
+- Ejemplos técnicos.
+
+El chunking deberá evitar, en lo posible, separar elementos que dependan directamente entre sí para su comprensión.
+
+---
+
+### 6.4 Casos de prueba
+
+#### Caso 1 — Documento técnico estructurado
+
+**Entrada:**
+
+Documento técnico con títulos, secciones y párrafos.
+
+**Resultado esperado:**
+
+Los chunks conservan suficiente contexto para representar correctamente cada sección.
+
+---
+
+#### Caso 2 — Sección extensa
+
+**Entrada:**
+
+Sección cuyo contenido supera el tamaño máximo configurado.
+
+**Resultado esperado:**
+
+La sección se divide manteniendo el contexto y la metadata de origen.
+
+---
+
+#### Caso 3 — Sección pequeña
+
+**Entrada:**
+
+Sección con muy poco contenido.
+
+**Resultado esperado:**
+
+El sistema evita generar fragmentos innecesariamente pequeños cuando puedan combinarse con contenido relacionado.
+
+---
+
+#### Caso 4 — Código o contenido técnico especial
+
+**Entrada:**
+
+Documento que contiene código, comandos o bloques técnicos.
+
+**Resultado esperado:**
+
+El contenido se conserva de forma que pueda ser interpretado correctamente en las etapas posteriores.
+
+---
+
+#### Caso 5 — Tabla o estructura compleja
+
+**Entrada:**
+
+Documento que contiene tablas u otros elementos estructurados.
+
+**Resultado esperado:**
+
+Se conserva la mayor cantidad posible de información necesaria para mantener el significado del contenido.
+
+---
+
+#### Caso 6 — Documento con estructura irregular
+
+**Entrada:**
+
+Documento con títulos, saltos de línea o secciones inconsistentes.
+
+**Resultado esperado:**
+
+El algoritmo produce chunks procesables manteniendo la mayor coherencia contextual posible.
+
+---
+
+### 6.5 Validación de metadata
+
+Para cada chunk generado se deberá comprobar:
+
+- Existencia de `document_id`.
+- Existencia de `chunk_id`.
+- Existencia del contenido.
+- Conservación de la fuente.
+- Página cuando esté disponible.
+- Sección cuando esté disponible.
+- Relación correcta con el documento original.
+
+---
+
+### 6.6 Validación de trazabilidad
+
+Se deberá comprobar que sea posible reconstruir la relación:
+
+```text
+Documento
+   ↓
+Chunk
+   ↓
+Metadata
+   ↓
+IA-04 — Embeddings + Vector Store
+```
+
+La pérdida de identificación o metadata deberá registrarse como error de trazabilidad.
+
+---
+
+### 6.7 Evaluación para RAG
+
+La calidad del chunking deberá evaluarse también considerando su impacto sobre la recuperación posterior.
+
+Cuando sea posible, se deberán utilizar consultas representativas para comprobar si los chunks contienen suficiente información para que IA-05 pueda recuperar el contexto correcto.
+
+La evaluación deberá considerar:
+
+- Relevancia del contenido recuperable.
+- Contexto suficiente.
+- Fragmentación de conceptos.
+- Recuperación de información relacionada.
+- Capacidad de identificar la fuente.
+
+Esta evaluación deberá coordinarse con IA-05 — Retriever / RAG.
+
+---
+
+### 6.8 Registro de resultados
+
+Las pruebas deberán dejar evidencia de:
+
+- Documento utilizado.
+- Configuración de chunking.
+- Cantidad de chunks generados.
+- Problemas detectados.
+- Ajustes realizados.
+- Resultado de las pruebas.
+- Configuración finalmente seleccionada.
+
+La configuración final no deberá establecerse únicamente por definición teórica; deberá estar respaldada por los resultados obtenidos durante las pruebas.
+
+---
+
+### 6.9 Criterio de aceptación
+
+La estrategia de chunking podrá considerarse validada cuando:
+
+- Los chunks sean procesables por IA-04.
+- Se conserve la trazabilidad.
+- La metadata requerida esté disponible.
+- El contenido mantenga suficiente contexto.
+- Los casos especiales hayan sido evaluados.
+- Los parámetros seleccionados hayan sido probados.
+- Los resultados hayan sido registrados.
+- Las limitaciones conocidas hayan sido documentadas.
+
+La validación de la calidad de recuperación corresponde a IA-05, pero IA-03 deberá proporcionar los datos necesarios para realizarla.
+
+---
+
+## 7. Subtareas
+
+Las actividades principales de IA-03 serán:
+
+- **IA-03.1 — Definir estrategia de chunking**
+  - Definir separadores jerárquicos.
+  - Definir comportamiento para diferentes estructuras documentales.
+  - Establecer configuración inicial de tamaño y overlap.
+
+- **IA-03.2 — Implementar segmentación**
+  - Implementar la estrategia de chunking.
+  - Mantener el orden lógico del contenido.
+  - Preservar el contexto necesario.
+
+- **IA-03.3 — Implementar metadata**
+  - Generar `document_id`.
+  - Generar `chunk_id`.
+  - Asociar fuente, página, sección y demás metadata disponible.
+
+- **IA-03.4 — Implementar trazabilidad**
+  - Mantener la relación Documento → Chunk.
+  - Preparar la información necesaria para IA-04 y las etapas posteriores.
+
+- **IA-03.5 — Evaluar configuración**
+  - Probar inicialmente `800 tokens / 150 overlap`.
+  - Evaluar resultados.
+  - Ajustar parámetros cuando los resultados lo justifiquen.
+
+- **IA-03.6 — Evaluar casos especiales**
+  - Secciones extensas.
+  - Secciones pequeñas.
+  - Listas.
+  - Tablas.
+  - Código.
+  - Ejemplos técnicos.
+  - Estructuras irregulares.
+
+- **IA-03.7 — Ejecutar pruebas**
+  - Utilizar documentos técnicos representativos.
+  - Registrar resultados y problemas encontrados.
+
+- **IA-03.8 — Validar salida para IA-04**
+  - Comprobar que los chunks contienen la información necesaria.
+  - Verificar compatibilidad con la generación de embeddings y almacenamiento vectorial.
+
+- **IA-03.9 — Registrar decisiones y resultados**
+  - Documentar configuración utilizada.
+  - Registrar ajustes realizados.
+  - Registrar limitaciones conocidas.
+
+---
+
+## 8. Decisiones pendientes
+
+Antes de considerar definitiva la implementación deberán validarse:
+
+- Tamaño final de los chunks.
+- Valor final del overlap.
+- Separadores utilizados.
+- Estrategia para secciones pequeñas.
+- Estrategia para secciones extensas.
+- Tratamiento de tablas.
+- Tratamiento de código y comandos.
+- Metadata mínima definitiva.
+- Estructura definitiva del `chunk_id`.
+- Información de posición u orden que deberá conservarse.
+- Formato de salida hacia IA-04.
+- Estrategia para documentos con estructura irregular.
+
+Los valores `800 / 150` representan la configuración inicial propuesta y deberán mantenerse como hipótesis de trabajo hasta completar las pruebas.
+
+---
+
+## 9. Dependencias
+
+### Dependencia de entrada
+
+**IA-02 — Ingestión y validación de documentos**
+
+Proporciona:
+
+- Texto normalizado.
+- Identificador del documento.
+- Metadata inicial.
+- Información de origen.
+- Referencias de página o sección cuando estén disponibles.
+
+### Dependencia de salida
+
+**IA-04 — Embeddings + Vector Store**
+
+Recibirá los chunks preparados y su metadata para generar embeddings y almacenarlos en el Vector Store.
+
+### Dependencias de validación
+
+**IA-05 — Retriever / RAG**
+
+Permitirá evaluar posteriormente el impacto del chunking sobre la recuperación del contexto.
+
+**IA-07 — Validación IA**
+
+Necesitará la trazabilidad hacia la fuente para realizar las verificaciones posteriores.
+
+**IA-08 — Integración + JSON**
+
+Deberá mantener la información necesaria para identificar las fuentes utilizadas en la respuesta final.
+
+---
+
+## 10. Fuera de alcance
+
+IA-03 no contempla:
+
+- Generación de embeddings.
+- Configuración del modelo de embeddings.
+- Implementación del Vector Store.
+- Recuperación semántica.
+- Implementación del Retriever.
+- Generación de contenido mediante LLM.
+- Adaptación pedagógica.
+- Validación de fidelidad del contenido generado.
+- Construcción del JSON final de respuesta.
+
+Estas responsabilidades corresponden a las actividades posteriores del pipeline.
+
+---
+
+## 11. Definition of Done
+
+IA-03 podrá considerarse completada cuando:
+
+- [ ] La estrategia de chunking esté definida.
+- [ ] La estrategia esté implementada.
+- [ ] Los parámetros iniciales hayan sido probados.
+- [ ] El tamaño y overlap hayan sido evaluados.
+- [ ] Se hayan probado diferentes estructuras documentales.
+- [ ] Se hayan evaluado casos especiales.
+- [ ] Cada chunk tenga un identificador único.
+- [ ] Cada chunk conserve `document_id`.
+- [ ] La metadata requerida acompañe al chunk.
+- [ ] Se mantenga la trazabilidad hacia el documento original.
+- [ ] Se haya validado la coherencia del contenido.
+- [ ] Los resultados de las pruebas estén registrados.
+- [ ] Las limitaciones conocidas estén documentadas.
+- [ ] La salida sea compatible con IA-04.
+- [ ] Las decisiones técnicas pendientes hayan sido resueltas o registradas como pendientes explícitos.
+- [ ] Data & IA haya validado la implementación.
+
+---
+
+## 12. Resultado esperado
+
+Al finalizar IA-03, NuevaMente deberá disponer de una colección de chunks técnicamente coherentes, identificables y trazables.
+
+La salida conceptual será:
+
+```text
+Documento normalizado
+        ↓
+      IA-03
+        ↓
+Chunks + Metadata + Trazabilidad
+        ↓
+      IA-04
+        ↓
+Embeddings + Vector Store
+```
+
+El resultado de IA-03 deberá permitir continuar el pipeline sin perder la relación entre el contenido procesado y su documento de origen.
+
+---

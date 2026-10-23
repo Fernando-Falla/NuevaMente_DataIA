@@ -5,6 +5,7 @@ import asyncio
 import pytest
 from unittest.mock import Mock
 
+from dataia.common import providers
 from nuevamente_ai.agents.auditor import AuditorAgent
 from nuevamente_ai.agents.critico import EvaluacionItems, VeredictoItem, decidir_proximo_paso, nodo_critico
 
@@ -21,10 +22,9 @@ def juez_simulado(monkeypatch):
     monkeypatch.delenv("IA_STRICT_PROVIDERS", raising=False)
     juez = Mock()
     juez.invoke.return_value = veredictos((0, "respaldado", ""))
-    modelo = Mock()
-    modelo.with_structured_output.return_value = juez
-    proveedor = Mock(return_value=modelo)
-    monkeypatch.setattr("nuevamente_ai.config.obtener_llm_adaptacion", proveedor)
+    # obtener_llm_etapa devuelve el modelo con salida estructurada y el limitador de su proveedor
+    proveedor = Mock(return_value=(juez, providers.GENERATION_LIMITER))
+    monkeypatch.setattr("nuevamente_ai.config.obtener_llm_etapa", proveedor)
     return proveedor, juez
 
 

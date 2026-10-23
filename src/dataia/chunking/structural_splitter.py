@@ -10,7 +10,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dataia.common.credentials import get_google_api_key
 from dataia.common.models import ExtractedContent, Chunk, ChunkMetadata
 from dataia.common.budget import estimate_tokens
-from dataia.common.providers import call_provider, create_gemini_llm
+from dataia.common.providers import call_provider, create_stage_llm
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -44,8 +44,9 @@ def _default_info() -> ChunkPedagogicalInfo:
 def _strict() -> bool:
     return os.getenv("IA_STRICT_PROVIDERS") == "1"
 
-def _get_llm():
-    return create_gemini_llm(api_key=get_google_api_key())
+def _get_llm(schema, prompt: str):
+    # Etapa CLASIFICACION: Gemini o Groq según IA_PROVIDER_CLASIFICACION y el tamaño del prompt
+    return create_stage_llm("CLASIFICACION", schema, gemini_api_key=get_google_api_key(), prompt_tokens=estimate_tokens(prompt))
 
 def _cache_file(text: str) -> str:
     return os.path.join(CACHE_DIR, f"{hashlib.sha256(text.encode('utf-8')).hexdigest()[:24]}.json")
@@ -72,13 +73,12 @@ def enrich_chunk_metadata(chunk_id: str, text: str) -> ChunkPedagogicalInfo:
         return cached
 
     try:
-        structured_llm = _get_llm().with_structured_output(ChunkPedagogicalInfo)
-
         prompt = (
             "Analiza el siguiente fragmento de texto técnico y determina su tipo de contenido, nivel de dificultad (1-5) y concepto principal.\n\n"
             f"Fragmento:\n{text}\n"
         )
-        result = call_provider("ENRIQUECIMIENTO_FRAGMENTO", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt))
+        structured_llm, limiter = _get_llm(ChunkPedagogicalInfo, prompt)
+        result = call_provider("ENRIQUECIMIENTO_FRAGMENTO", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt), limiter)
         if result is None:
             raise ValueError("El LLM no devolvió una clasificación válida.")
         _write_cache(text, result)
@@ -91,7 +91,6 @@ def enrich_chunk_metadata(chunk_id: str, text: str) -> ChunkPedagogicalInfo:
 
 def _enrich_batch(texts: List[str]) -> Dict[int, ChunkPedagogicalInfo]:
     """Clasifica varios fragmentos en una sola llamada; devuelve los que el LLM respondió."""
-    structured_llm = _get_llm().with_structured_output(ChunkPedagogicalBatch)
     fragmentos = "\n\n".join(f"=== FRAGMENTO {i} ===\n{text}" for i, text in enumerate(texts))
     prompt = (
         "Analiza cada uno de los siguientes fragmentos de un documento técnico. Para cada fragmento devuelve "
@@ -99,7 +98,8 @@ def _enrich_batch(texts: List[str]) -> Dict[int, ChunkPedagogicalInfo]:
         "su nivel de dificultad (1-5) y su concepto principal. Responde una entrada por fragmento.\n\n"
         f"{fragmentos}\n"
     )
-    result = call_provider("ENRIQUECIMIENTO_FRAGMENTOS_LOTE", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt))
+    structured_llm, limiter = _get_llm(ChunkPedagogicalBatch, prompt)
+    result = call_provider("ENRIQUECIMIENTO_FRAGMENTOS_LOTE", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt), limiter)
     if result is None:
         return {}
     return {

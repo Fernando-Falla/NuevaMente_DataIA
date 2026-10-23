@@ -1,9 +1,12 @@
+import hashlib
 import json
 import os
+import re
 from typing import List, Optional
 from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from dataia.common.credentials import get_google_api_key
 from dataia.common.budget import estimate_tokens
 from dataia.common.providers import EMBEDDING_LIMITER, call_provider, provider_http_options
@@ -15,9 +18,66 @@ PERSIST_DIRECTORY = os.getenv("CHROMADB_DIR", os.path.join(os.getcwd(), ".chroma
 COLLECTION_NAME = os.getenv("CHROMADB_COLLECTION", "nuevamente_docs")
 # Registro por documento (metadata pedagógica y resumen de la indexación)
 DOCUMENTS_DIRECTORY = os.getenv("DATAIA_DOCUMENTS_DIR", os.path.join(os.getcwd(), ".dataia_documents"))
+DEFAULT_LOCAL_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+
+def embeddings_backend() -> str:
+    """
+    'local' (por defecto: fastembed en CPU, sin cuota) o 'gemini', según DATAIA_EMBEDDINGS.
+    Medición (.reports/embeddings-comparacion-2026-10-22.md): mpnet iguala a Gemini en
+    Hit@4 (0,96) e indexa sin esperas por cuota.
+    """
+    backend = os.getenv("DATAIA_EMBEDDINGS", "local").strip().lower()
+    if backend not in ("gemini", "local"):
+        raise ValueError("DATAIA_EMBEDDINGS debe ser 'gemini' o 'local'.")
+    return backend
+
+def local_embedding_model() -> str:
+    return os.getenv("DATAIA_LOCAL_EMBEDDING_MODEL", DEFAULT_LOCAL_EMBEDDING_MODEL)
+
+def collection_name() -> str:
+    """
+    Una colección por modelo de embeddings: dimensiones distintas y vectores no
+    comparables (spec proveedores R5). Gemini conserva el nombre base.
+    """
+    if embeddings_backend() == "gemini":
+        return COLLECTION_NAME
+    # Último tramo del nombre (legible) + hash del nombre completo (sin colisiones al recortar);
+    # ChromaDB admite nombres de hasta 63 caracteres
+    model = local_embedding_model()
+    digest = hashlib.sha1(model.encode("utf-8")).hexdigest()[:8]
+    slug = re.sub(r"[^a-z0-9]+", "_", model.split("/")[-1].lower()).strip("_")
+    prefix = f"{COLLECTION_NAME}__"
+    return f"{prefix}{slug[: 63 - len(prefix) - 9]}_{digest}"
+
+class LocalEmbeddings(Embeddings):
+    """Embeddings en CPU con fastembed (ONNX): sin red ni cuota tras la primera descarga."""
+
+    def __init__(self, model_name: str):
+        # En Windows sin modo desarrollador, huggingface_hub no puede crear enlaces simbólicos
+        # en su caché: copia los archivos y avisa en cada carga; el aviso no aporta información.
+        os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+        from fastembed import TextEmbedding
+        cache_dir = os.getenv("DATAIA_MODELS_DIR", os.path.join(os.getcwd(), ".dataia_models"))
+        self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [vector.tolist() for vector in self._model.embed(texts)]
+
+    def embed_query(self, text: str) -> List[float]:
+        return next(iter(self._model.query_embed(text))).tolist()
+
+_local_models = {}
 
 def get_embeddings_model():
-    """Inicializa el modelo de Embeddings de Gemini (requiere DATAIA_GOOGLE_API_KEY o GOOGLE_API_KEY)."""
+    """
+    Modelo de embeddings según DATAIA_EMBEDDINGS. Gemini requiere
+    DATAIA_GOOGLE_API_KEY o GOOGLE_API_KEY; el local se carga una vez por proceso.
+    """
+    if embeddings_backend() == "local":
+        name = local_embedding_model()
+        if name not in _local_models:
+            _local_models[name] = LocalEmbeddings(name)
+        return _local_models[name]
     model_name = os.getenv("GOOGLE_EMBEDDING_MODEL", "models/gemini-embedding-001")
     embeddings = GoogleGenerativeAIEmbeddings(model=model_name, google_api_key=get_google_api_key())
     # La versión instalada no aplica request_options a embed_content: se reemplaza el
@@ -31,7 +91,7 @@ def get_vector_store() -> Chroma:
     os.makedirs(PERSIST_DIRECTORY, exist_ok=True)
     embeddings = get_embeddings_model()
     return Chroma(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name(),
         embedding_function=embeddings,
         persist_directory=PERSIST_DIRECTORY
     )
@@ -77,6 +137,10 @@ def insert_chunks(chunks: List[Chunk]) -> bool:
     # Reindexación idempotente: se eliminan los vectores previos del documento
     if existing and existing["ids"]:
         vectorstore.delete(ids=existing["ids"])
+    # Embeddings locales: sin cuota que respetar (spec proveedores R4)
+    if embeddings_backend() == "local":
+        vectorstore.add_documents(documents, ids=ids)
+        return False
     # Lotes propios, cada uno sujeto al control de ritmo de embeddings (spec IA-02b R5).
     # La integración de LangChain con Chroma persiste automáticamente al agregar.
     for batch, batch_ids, batch_tokens in _embedding_batches(documents, ids):
@@ -136,7 +200,7 @@ def save_document_record(
         "document_id": document_id,
         "name": first.name,
         "doc_type": first.doc_type,
-        "collection_name": COLLECTION_NAME,
+        "collection_name": collection_name(),
         "chunks": len(chunks),
         "sections": sections,
         "pedagogical_metadata": pedagogical_metadata.model_dump() if pedagogical_metadata else None,

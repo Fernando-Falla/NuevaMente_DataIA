@@ -25,3 +25,14 @@ arbol.txt
 .dataia_documents/
 # Salidas generadas por scripts/run_pipeline_real.py
 .reports/salida_*.json
+
+# Documentación de referencia: solo se versionan las issues IA-01..IA-08 y la constitución.
+# Los PDFs son de terceros (derechos de autor y tamaño); los duplicados se excluyen.
+Documentacion/*
+!Documentacion/Issues/
+Documentacion/Issues/IA Issues.txt
+!Documentacion/Spec Kit/
+Documentacion/Spec Kit/Constitution.txt
+
+# Modelos de embeddings locales descargados por fastembed
+.dataia_models/
