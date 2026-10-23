@@ -9,7 +9,8 @@ from typing import List, Dict, Literal, NamedTuple, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dataia.common.credentials import get_google_api_key
 from dataia.common.models import ExtractedContent, Chunk, ChunkMetadata
-from dataia.common.providers import create_gemini_llm, provider_call
+from dataia.common.budget import estimate_tokens
+from dataia.common.providers import call_provider, create_gemini_llm
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -77,8 +78,7 @@ def enrich_chunk_metadata(chunk_id: str, text: str) -> ChunkPedagogicalInfo:
             "Analiza el siguiente fragmento de texto técnico y determina su tipo de contenido, nivel de dificultad (1-5) y concepto principal.\n\n"
             f"Fragmento:\n{text}\n"
         )
-        with provider_call("ENRIQUECIMIENTO_FRAGMENTO"):
-            result = structured_llm.invoke(prompt)
+        result = call_provider("ENRIQUECIMIENTO_FRAGMENTO", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt))
         if result is None:
             raise ValueError("El LLM no devolvió una clasificación válida.")
         _write_cache(text, result)
@@ -99,8 +99,7 @@ def _enrich_batch(texts: List[str]) -> Dict[int, ChunkPedagogicalInfo]:
         "su nivel de dificultad (1-5) y su concepto principal. Responde una entrada por fragmento.\n\n"
         f"{fragmentos}\n"
     )
-    with provider_call("ENRIQUECIMIENTO_FRAGMENTOS_LOTE"):
-        result = structured_llm.invoke(prompt)
+    result = call_provider("ENRIQUECIMIENTO_FRAGMENTOS_LOTE", lambda: structured_llm.invoke(prompt), estimate_tokens(prompt))
     if result is None:
         return {}
     return {

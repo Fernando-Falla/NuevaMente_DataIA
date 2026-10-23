@@ -12,7 +12,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from nuevamente_ai.state import EstadoPipelineAdaptacion
-from dataia.common.providers import provider_call
+from dataia.common.budget import estimate_tokens
+from dataia.common.providers import call_provider
 
 # Recursos didácticos: pueden no figurar en la fuente, pero no deben introducir datos falsos
 CAMPOS_DIDACTICOS = {"pista_didactica", "categoria_dificultad"}
@@ -126,11 +127,11 @@ def nodo_critico(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
     )
 
     try:
-        with provider_call("CRITICO"):
-            resultado = llm.invoke([
-                SystemMessage(content="Eres un juez riguroso contra las alucinaciones en material educativo técnico."),
-                HumanMessage(content=instruccion_juez)
-            ])
+        mensajes = [
+            SystemMessage(content="Eres un juez riguroso contra las alucinaciones en material educativo técnico."),
+            HumanMessage(content=instruccion_juez)
+        ]
+        resultado = call_provider("CRITICO", lambda: llm.invoke(mensajes), estimate_tokens(instruccion_juez))
         veredictos = {v.indice: v for v in (resultado.items if resultado else []) if 0 <= v.indice < len(items)}
         # Un ítem omitido por el juez cuenta como parcial (R3)
         score = sum(PESO_VEREDICTO[veredictos[i].veredicto] if i in veredictos else 0.5 for i in range(len(items))) / len(items)

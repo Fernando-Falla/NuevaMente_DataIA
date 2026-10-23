@@ -40,6 +40,22 @@ Documento (PDF / MD / TXT)
 
 ---
 
+## Dominios soportados
+
+NuevaMente procesa documentos técnicos de **TI, Fintech, Salud y Marketing digital**. El dominio se detecta en la ingestión: lo clasifica Gemini y, si no está disponible, un léxico por dominio. Los documentos de otros dominios o no técnicos se rechazan con `DOMINIO_NO_SOPORTADO`. La generación agrega pautas de exactitud propias de cada dominio; por ejemplo, en Salud reproduce dosis y umbrales exactos y aclara que es material educativo.
+
+El **nicho** (`TI`, `Fintech`, `Salud`, `Marketing digital`, `General`) es otro concepto: el sector al que se adaptan los ejemplos, elegido por quien solicita el contenido.
+
+## Límites de tamaño y cuota
+
+| Límite | Valor por defecto | Error |
+|---|---|---|
+| Tamaño del archivo | 25 MB | `ARCHIVO_DEMASIADO_GRANDE` |
+| Páginas de un PDF | 300 | `DOCUMENTO_DEMASIADO_EXTENSO` |
+| Tokens estimados del documento | 150.000 | `DOCUMENTO_DEMASIADO_EXTENSO` |
+
+Los rechazos ocurren antes de llamar al LLM. Las llamadas a Gemini respetan límites por minuto configurables, pensados para la cuenta gratuita, y ante un `429` esperan y reintentan. Detalle y mediciones: `specs/nueva_mente/ia02_tamano_y_cuota.md` y `.reports/ia02-tamano-y-dominios-2026-10-22.md`.
+
 ## Stack
 
 |Componente|Tecnología|
@@ -146,6 +162,20 @@ GOOGLE_API_KEY=your_google_api_key_here
 # DATAIA_CACHE_DIR=.dataia_cache
 # DATAIA_ENRICH_BATCH_SIZE=15
 
+# Opcional: límites de tamaño (se rechaza antes de llamar al LLM)
+# DATAIA_MAX_FILE_MB=25
+# DATAIA_MAX_PAGES=300
+# DATAIA_MAX_DOCUMENT_TOKENS=150000
+# DATAIA_DOC_METADATA_MAX_TOKENS=8000
+
+# Opcional: control de ritmo (valores prudentes para la cuenta gratuita de Gemini)
+# IA_PROVIDER_RPM=10
+# IA_PROVIDER_TPM=200000
+# IA_EMBEDDING_RPM=100
+# IA_EMBEDDING_TPM=20000
+# IA_PROVIDER_QUOTA_RETRIES=2
+# DATAIA_EMBEDDING_BATCH_SIZE=20
+
 # Opcional: persistencia ChromaDB
 # CHROMADB_DIR=.chromadb_data
 # CHROMADB_COLLECTION=nuevamente_docs
@@ -220,6 +250,7 @@ El reporte se guardará automáticamente en `.reports/`.
 |Fase A|Mejoras de IA-02 a IA-04 (ver `docs/MEJORAS_FASE_A.md`)|Completado|
 |IA-05|Retriever / RAG|Pendiente|
 |IA-06|Generación LLM + perfiles|Pendiente|
+|IA-02b/c|Límites de tamaño, control de cuota y dominios TI, Fintech, Salud y Marketing digital|Completado|
 |IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
 |IA-08|Integración Backend (JSON contrato)|Pendiente|
 

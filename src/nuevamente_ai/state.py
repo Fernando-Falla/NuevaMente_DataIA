@@ -15,6 +15,8 @@ class EstadoPipelineAdaptacion(TypedDict):
     formato_salida: str
     nicho_sector: str
     nivel_detalle: str
+    # Detectado por Data/IA: TI, Fintech, Salud, Marketing digital (spec IA-02c)
+    dominio_documento: str
 
     # Contexto intermedio generado por agentes
     fragmentos_relevantes: List[Dict[str, Any]]

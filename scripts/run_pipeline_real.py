@@ -28,6 +28,10 @@ try:
 except ImportError:
     pass
 
+import logging
+# LOG_LEVEL=INFO muestra cada llamada al proveedor y las esperas del control de ritmo
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "WARNING"), format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+
 os.environ.setdefault("IA_STRICT_PROVIDERS", "1")
 if os.getenv("GOOGLE_API_KEY"):
     os.environ.setdefault("GEMINI_API_KEY", os.environ["GOOGLE_API_KEY"])

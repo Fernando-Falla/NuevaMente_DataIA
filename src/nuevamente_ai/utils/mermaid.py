@@ -64,7 +64,8 @@ def sanitizar_codigo_mermaid(
         if arbol:
             return generar_mermaid_desde_arbol(nodo_central, arbol)
         raiz = limpiar_texto_nodo_mermaid(nodo_central)
-        return f"mindmap\n  root(({raiz}))\n    Fundamentos\n      Conceptos Clave\n    Arquitectura\n      Componentes\n    Buenas Prácticas\n      Seguridad"
+        # Estructura neutral respecto del dominio (spec IA-02c R5)
+        return f"mindmap\n  root(({raiz}))\n    Conceptos principales\n    Procedimientos y reglas\n    Aplicación práctica"
 
     # 1. Remover etiquetas de Markdown ```mermaid ... ```
     texto = re.sub(r"^```(?:mermaid)?\s*", "", codigo.strip(), flags=re.IGNORECASE)

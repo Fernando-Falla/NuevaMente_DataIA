@@ -117,6 +117,7 @@ async def test_ejecucion_pipeline_adaptacion_async_senior_quiz():
 def test_ejecucion_pipeline_ejecutivo_mapa_mental():
     """Verifica la ejecución para perfil Ejecutivo con formato Mapa Mental."""
     texto_ejemplo = (
+        "Cada microservicio expone una API REST y se despliega en un cluster de Kubernetes. "
         "La arquitectura de microservicios divide las aplicaciones en servicios independientes "
         "desplegados en contenedores, optimizando el tiempo de entrega al mercado y reduciendo costos operativos."
     )
@@ -131,7 +132,7 @@ def test_ejecucion_pipeline_ejecutivo_mapa_mental():
             ruta_archivo=test_file_path,
             perfil="Ejecutivo",
             formato="Mapa Mental",
-            nicho="E-commerce"
+            nicho="Marketing digital"
         )
     finally:
         os.remove(test_file_path)
@@ -215,7 +216,8 @@ async def test_fidelidad_rechazo_422_contexto_irrelevante():
             pytest.fail("El pipeline alucinó contenido técnico desde una receta de cocina en lugar de rechazarlo.")
     except Exception as e:
         # Debería levantar una excepción con código 422
-        assert "422" in str(e) or "Contexto Insuficiente" in str(e) or "no contiene contenido t" in str(e), f"Se esperaba error 422 de Grounding o Ingestion, se obtuvo: {e}"
+        # La receta se rechaza en la ingestión por dominio (spec IA-02c) o, si llegara a generarse, por fidelidad
+        assert "422" in str(e) or "Contexto Insuficiente" in str(e) or "dominios soportados" in str(e) or "NuevaMente procesa" in str(e), f"Se esperaba rechazo por dominio o por fidelidad, se obtuvo: {e}"
     finally:
         os.remove(test_file_path)
 

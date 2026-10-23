@@ -9,7 +9,8 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from nuevamente_ai.state import EstadoPipelineAdaptacion
 from nuevamente_ai.config import obtener_llm_adaptacion
 from nuevamente_ai.schemas import PaqueteContenidoAdaptado
-from dataia.common.providers import provider_call
+from dataia.common.budget import estimate_tokens
+from dataia.common.providers import call_provider
 
 
 def nodo_creador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
@@ -45,7 +46,8 @@ def nodo_creador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
 
     instruccion_usuario += (
         f"⚠️ REQUERIMIENTO DE NICHO (CRÍTICO): Adapta todos los ejemplos, analogías y la introducción estrictamente al contexto de {nicho}.\n"
-        f"⚠️ REGLA DE FIDELIDAD (ANTI-ALUCINACIÓN): Las analogías deben construirse ÚNICAMENTE sobre conceptos presentes en el TEXTO FUENTE. NO inventes características técnicas, reglas de negocio o afirmaciones fácticas que no estén explícitamente en el documento.\n\n"
+        f"⚠️ REGLA DE FIDELIDAD (ANTI-ALUCINACIÓN): Las analogías deben construirse ÚNICAMENTE sobre conceptos presentes en el TEXTO FUENTE. NO inventes características técnicas, reglas de negocio o afirmaciones fácticas que no estén explícitamente en el documento.\n"
+        "⚠️ ORTOGRAFÍA: Redacta en español con ortografía completa (tildes, ñ y signos de apertura ¿ ¡), también en las etiquetas y el código Mermaid.\n\n"
         "Genera un objeto PaqueteContenidoAdaptado con 'titulo', 'introduccion_contextualizada' e 'items' "
         "conforme a las directrices de formato, perfil y nicho."
     )
@@ -54,11 +56,10 @@ def nodo_creador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
     try:
         llm = obtener_llm_adaptacion(temperatura=0.3)
         structured_llm = llm.with_structured_output(PaqueteContenidoAdaptado)
-        with provider_call("GENERADOR"):
-            resultado: PaqueteContenidoAdaptado = structured_llm.invoke([
-                SystemMessage(content=prompt_sistema),
-                HumanMessage(content=instruccion_usuario)
-            ])
+        mensajes = [SystemMessage(content=prompt_sistema), HumanMessage(content=instruccion_usuario)]
+        resultado: PaqueteContenidoAdaptado = call_provider(
+            "GENERADOR", lambda: structured_llm.invoke(mensajes), estimate_tokens(prompt_sistema + instruccion_usuario)
+        )
         borrador_dict = resultado.model_dump()
     except Exception as e:
         if os.getenv("IA_STRICT_PROVIDERS") == "1":
@@ -75,60 +76,67 @@ def nodo_creador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
     }
 
 
+AVISO_CONTINGENCIA = "Contenido de contingencia: el proveedor de IA no estuvo disponible. Revise el documento original."
+
+
 def _generar_borrador_fallback(titulo: str, perfil: str, formato: str, texto: str) -> Dict[str, Any]:
-    """Genera un borrador determinista basado en heurísticas para pruebas aisladas sin conexión a API."""
+    """
+    Borrador determinista para pruebas aisladas sin conexión a la API (solo fuera
+    del modo estricto). No afirma hechos: indica que es contenido de contingencia
+    y no supone ningún dominio (spec IA-02c R5).
+    """
     if formato == "Flashcards":
         items = [
             {
-                "frente": f"¿Qué principio fundamental describe '{titulo}'?",
-                "dorso": f"Explica la arquitectura y fundamentos de {titulo} para el perfil {perfil}.",
-                "pista_didactica": "Piensa en el funcionamiento modular de un sistema distribuido.",
+                "frente": f"¿Cuáles son los conceptos principales de '{titulo}'?",
+                "dorso": AVISO_CONTINGENCIA,
+                "pista_didactica": "Repasa los títulos y las definiciones del documento.",
                 "categoria_dificultad": "Básico"
             },
             {
-                "frente": "¿Cuál es la función operativa principal del componente analizado?",
-                "dorso": "Regula la comunicación, seguridad y persistencia de las cargas de trabajo técnicas.",
-                "pista_didactica": "Es como un guardia perimetral de seguridad.",
+                "frente": f"¿Qué procedimientos o reglas describe '{titulo}'?",
+                "dorso": AVISO_CONTINGENCIA,
+                "pista_didactica": "Busca las listas de pasos y las condiciones del documento.",
                 "categoria_dificultad": "Intermedio"
             }
         ]
     elif formato == "Quiz Interactivo":
         items = [
             {
-                "pregunta": f"Respecto a {titulo}, ¿cuál es la mejor práctica recomendada?",
+                "pregunta": f"¿Dónde se encuentra la información sobre '{titulo}'?",
                 "opciones": [
-                    "Ignorar los mecanismos de aislamiento y seguridad",
-                    "Configurar segmentación de red y políticas de acceso mínimo",
-                    "Desactivar las alertas presupuestarias de costos",
-                    "Ejecutar todos los servicios en un solo puerto sin cifrado"
+                    "En una fuente externa no relacionada",
+                    "En el documento original",
+                    "En ninguna fuente",
+                    "En una suposición propia"
                 ],
                 "indice_correcto": 1,
-                "justificacion_tecnica": "El principio de mínimo privilegio y la segmentación previenen accesos no autorizados.",
-                "pista_didactica": "Aplica el principio de defensa en profundidad.",
-                "explicacion_distractores": "Las otras alternativas violan las buenas prácticas de seguridad y control de costos."
+                "justificacion_tecnica": AVISO_CONTINGENCIA,
+                "pista_didactica": "La fuente de verdad es el documento cargado.",
+                "explicacion_distractores": "Solo el documento original respalda el contenido."
             }
         ]
     elif formato == "Mapa Mental":
         items = {
             "nodo_central": titulo,
-            "descripcion_general": f"Estructura jerárquica de {titulo} para nivel {perfil}",
+            "descripcion_general": AVISO_CONTINGENCIA,
             "arbol": [
-                {"id": "n1", "etiqueta": "Arquitectura y Fundamentos", "subnodos": []},
-                {"id": "n2", "etiqueta": "Seguridad y Políticas", "subnodos": []},
-                {"id": "n3", "etiqueta": "Operación y Buenas Prácticas", "subnodos": []}
+                {"id": "n1", "etiqueta": "Conceptos principales", "subnodos": []},
+                {"id": "n2", "etiqueta": "Procedimientos y reglas", "subnodos": []},
+                {"id": "n3", "etiqueta": "Aplicación práctica", "subnodos": []}
             ],
-            "codigo_mermaid": f"mindmap\n  root(({titulo}))\n    Arquitectura\n      Fundamentos\n      Componentes\n    Seguridad\n      Políticas\n      Reglas de Red\n    Operaciones\n      Monitoreo\n      Costos"
+            "codigo_mermaid": f"mindmap\n  root(({titulo}))\n    Conceptos principales\n    Procedimientos y reglas\n    Aplicación práctica"
         }
     else:
         items = {
-            "tldr": f"Síntesis ejecutiva de {titulo} orientada a perfil {perfil}.",
-            "puntos_clave": ["Eficiencia de costos", "Escalabilidad modular", "Cumplimiento normativo"],
-            "impacto_negocio": "Reduce el tiempo de adopción técnica y optimiza el ROI.",
-            "recomendaciones": ["Iniciar despliegue en ambiente de prueba", "Verificar alertas de presupuesto"]
+            "tldr": AVISO_CONTINGENCIA,
+            "puntos_clave": ["Conceptos principales del documento", "Procedimientos y reglas", "Aplicación práctica"],
+            "impacto_negocio": AVISO_CONTINGENCIA,
+            "recomendaciones": ["Revisar el documento original", "Reintentar la generación más tarde"]
         }
 
     return {
         "titulo": f"{titulo} ({perfil})",
-        "introduccion_contextualizada": f"Material adaptado didácticamente para {perfil}.",
+        "introduccion_contextualizada": AVISO_CONTINGENCIA,
         "items": items
     }

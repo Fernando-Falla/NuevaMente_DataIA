@@ -5,10 +5,11 @@ import re
 from typing import List, Optional, Union
 import pymupdf
 
+from dataia.common.budget import estimate_tokens, max_document_tokens, max_file_mb, max_pages
 from dataia.common.models import (
-    DocumentMetadata, ExtractedContent, IngestionResult, IngestionError, IngestionResponse
+    DOMINIOS_SOPORTADOS, DocumentMetadata, ExtractedContent, IngestionResult, IngestionError, IngestionResponse
 )
-from dataia.ingestion.validators import validate_content_not_empty, validate_technical_relevance
+from dataia.ingestion.validators import detect_domain_by_lexicon, validate_content_not_empty
 from dataia.ingestion.normalizer import normalize_text
 
 logger = logging.getLogger(__name__)
@@ -157,6 +158,26 @@ def ingest_document(file_path: str, document_name: Optional[str] = None) -> Inge
 
     name = document_name or os.path.basename(file_path)
     ext = os.path.splitext(file_path)[1].lower().strip('.')
+
+    # 0. Límites de entrada antes de abrir o extraer el archivo (spec IA-02b R1)
+    size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    if size_mb > max_file_mb():
+        return IngestionError(
+            codigo="ARCHIVO_DEMASIADO_GRANDE",
+            mensaje=f"El archivo pesa {size_mb:.1f} MB y el límite es {max_file_mb()} MB. Divídalo en partes más pequeñas."
+        )
+    if ext == "pdf":
+        try:
+            with pymupdf.open(file_path) as pdf_document:
+                page_count = len(pdf_document)
+        except Exception as e:
+            return IngestionError(codigo="ERROR_EXTRACCION", mensaje=f"No se pudo abrir el PDF: {str(e)}")
+        if page_count > max_pages():
+            return IngestionError(
+                codigo="DOCUMENTO_DEMASIADO_EXTENSO",
+                mensaje=f"El documento tiene {page_count} páginas y el límite es {max_pages()}. Divídalo por capítulos o secciones."
+            )
+
     doc_id = generate_document_id(file_path)
 
     # 1. Extracción según el formato
@@ -187,11 +208,15 @@ def ingest_document(file_path: str, document_name: Optional[str] = None) -> Inge
             mensaje="El documento no contiene texto suficiente, está vacío o la extracción falló."
         )
 
-    # 3. Validación: Pertinencia Técnica
-    if not validate_technical_relevance(full_text):
+    # 3. Límite de tokens antes de cualquier llamada al LLM (spec IA-02b R1)
+    document_tokens = estimate_tokens(full_text)
+    if document_tokens > max_document_tokens():
         return IngestionError(
-            codigo="DOCUMENTO_NO_TECNICO",
-            mensaje="El documento no contiene contenido técnico suficiente para ser procesado por NuevaMente."
+            codigo="DOCUMENTO_DEMASIADO_EXTENSO",
+            mensaje=(
+                f"El documento tiene unos {document_tokens:,} tokens y el límite es {max_document_tokens():,}. "
+                "Divídalo por capítulos o secciones."
+            )
         )
 
     # 4. Normalización final y preparación del resultado
@@ -202,13 +227,42 @@ def ingest_document(file_path: str, document_name: Optional[str] = None) -> Inge
             content.text = norm_text
             normalized_content.append(content)
 
-    # 4.1 Enriquecimiento pedagógico (IA-02 reapertura)
-    from dataia.ingestion.enrichment import enrich_document_metadata
-    pedagogical_meta = enrich_document_metadata(doc_id, full_text)
+    # 4.1 Metadata pedagógica y dominio, a partir de un resumen acotado (specs IA-02b R2 e IA-02c R1)
+    from dataia.ingestion.enrichment import build_document_digest, enrich_document_metadata
+    pedagogical_meta = enrich_document_metadata(doc_id, build_document_digest(normalized_content))
+
+    # 4.2 Dominio: decide el LLM; si no lo clasificó, el léxico de respaldo (spec IA-02c R2 y R3)
+    rejection = _domain_rejection(pedagogical_meta, full_text)
+    if rejection:
+        return rejection
 
     # 5. Salida Exitosa
     return IngestionResult(
         document_id=doc_id,
         content=normalized_content,
-        pedagogical_metadata=pedagogical_meta
+        pedagogical_metadata=pedagogical_meta,
+        estimated_tokens=estimate_tokens("\n\n".join(c.text for c in normalized_content))
     )
+
+def _domain_rejection(pedagogical_meta, full_text: str) -> Optional[IngestionError]:
+    soportados = ", ".join(DOMINIOS_SOPORTADOS)
+    if pedagogical_meta.dominio is not None:
+        if pedagogical_meta.dominio in DOMINIOS_SOPORTADOS and pedagogical_meta.es_documento_tecnico is not False:
+            return None
+        return IngestionError(
+            codigo="DOMINIO_NO_SOPORTADO",
+            mensaje=(
+                f"NuevaMente procesa documentos técnicos de {soportados}. Clasificación: "
+                f"{pedagogical_meta.dominio}, técnico: {pedagogical_meta.es_documento_tecnico}. "
+                f"{pedagogical_meta.justificacion_dominio}"
+            ).strip()
+        )
+    dominio, _ = detect_domain_by_lexicon(full_text)
+    if dominio is None:
+        return IngestionError(
+            codigo="DOMINIO_NO_SOPORTADO",
+            mensaje=f"El documento no contiene términos suficientes de ninguno de los dominios soportados ({soportados})."
+        )
+    pedagogical_meta.dominio = dominio
+    pedagogical_meta.justificacion_dominio = "Clasificado por léxico de respaldo (el LLM no estuvo disponible)."
+    return None

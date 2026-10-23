@@ -7,6 +7,7 @@ from typing import Any, Dict
 from nuevamente_ai.state import EstadoPipelineAdaptacion
 from nuevamente_ai.prompts.perfiles import obtener_prompt_sistema
 from nuevamente_ai.prompts.formatos import obtener_instrucciones_formato
+from nuevamente_ai.prompts.dominios import obtener_pautas_dominio
 
 
 def nodo_analizador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
@@ -22,7 +23,9 @@ def nodo_analizador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
     prompt_sistema = obtener_prompt_sistema(perfil)
     instrucciones_formato = obtener_instrucciones_formato(formato)
 
-    prompt_combinado = f"{prompt_sistema}\n\n{instrucciones_formato}"
+    # Pautas de exactitud del dominio detectado por Data/IA (spec IA-02c R5)
+    pautas_dominio = obtener_pautas_dominio(state.get("dominio_documento"))
+    prompt_combinado = f"{prompt_sistema}\n\n{pautas_dominio}\n\n{instrucciones_formato}"
 
     # Extracción heurística rápida de conceptos clave preliminares
     texto_total = " ".join([f.get("contenido", "") for f in fragmentos])

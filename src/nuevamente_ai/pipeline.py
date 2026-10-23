@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from nuevamente_ai.graph import grafo_adaptacion_compilado
 from nuevamente_ai.schemas import AdaptacionContenidoResponse
-from dataia.common.providers import provider_call
+from dataia.common.providers import EMBEDDING_LIMITER, call_provider
 
 
 def _construir_query_pedagogica(titulo: str, formato: str) -> str:
@@ -21,7 +21,7 @@ def _construir_query_pedagogica(titulo: str, formato: str) -> str:
         return f"Ejemplos prácticos, instrucciones paso a paso, fundamentos y aplicación de {titulo}"
     elif "resumen" in fmt or "tldr" in fmt:
         return f"Resumen ejecutivo, impacto de negocio, ventajas y visión general de {titulo}"
-    return f"Conceptos principales, arquitectura y reglas de {titulo}"
+    return f"Conceptos principales, definiciones y reglas de {titulo}"
 
 
 def ejecutar_pipeline_adaptacion(
@@ -71,12 +71,11 @@ def ejecutar_pipeline_adaptacion(
     query_pedagogica = _construir_query_pedagogica(documento_titulo, formato)
     vectorstore = get_vector_store()
     
-    with provider_call("RECUPERACION_FRAGMENTOS"):
-        docs_relevantes = vectorstore.similarity_search(
-            query=query_pedagogica,
-            k=15,
-            filter={"document_id": vs_res.document_id}
-        )
+    docs_relevantes = call_provider(
+        "RECUPERACION_FRAGMENTOS",
+        lambda: vectorstore.similarity_search(query=query_pedagogica, k=15, filter={"document_id": vs_res.document_id}),
+        limiter=EMBEDDING_LIMITER,
+    )
     
     fragmentos_relevantes = [{"contenido": d.page_content, "metadatos": d.metadata} for d in docs_relevantes]
     texto_completo = " ".join([d.page_content for d in docs_relevantes])
@@ -91,6 +90,7 @@ def ejecutar_pipeline_adaptacion(
         "perfil_destinatario": perfil,
         "formato_salida": formato,
         "nicho_sector": nicho,
+        "dominio_documento": getattr(ingestion_res.pedagogical_metadata, "dominio", None) or "General",
         "nivel_detalle": nivel_detalle,
         "fragmentos_relevantes": fragmentos_relevantes,
         "conceptos_clave": [],
@@ -202,12 +202,11 @@ async def ejecutar_pipeline_adaptacion_async(
     query_pedagogica = _construir_query_pedagogica(documento_titulo, formato)
     vectorstore = get_vector_store()
     
-    with provider_call("RECUPERACION_FRAGMENTOS"):
-        docs_relevantes = vectorstore.similarity_search(
-            query=query_pedagogica,
-            k=15,
-            filter={"document_id": vs_res.document_id}
-        )
+    docs_relevantes = call_provider(
+        "RECUPERACION_FRAGMENTOS",
+        lambda: vectorstore.similarity_search(query=query_pedagogica, k=15, filter={"document_id": vs_res.document_id}),
+        limiter=EMBEDDING_LIMITER,
+    )
     
     fragmentos_relevantes = [{"contenido": d.page_content, "metadatos": d.metadata} for d in docs_relevantes]
     texto_completo = " ".join([d.page_content for d in docs_relevantes])
@@ -221,6 +220,7 @@ async def ejecutar_pipeline_adaptacion_async(
         "perfil_destinatario": perfil,
         "formato_salida": formato,
         "nicho_sector": nicho,
+        "dominio_documento": getattr(ingestion_res.pedagogical_metadata, "dominio", None) or "General",
         "nivel_detalle": nivel_detalle,
         "fragmentos_relevantes": fragmentos_relevantes,
         "conceptos_clave": [],

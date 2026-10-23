@@ -5,7 +5,8 @@ from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document
 from dataia.common.credentials import get_google_api_key
-from dataia.common.providers import provider_call, provider_http_options
+from dataia.common.budget import estimate_tokens
+from dataia.common.providers import EMBEDDING_LIMITER, call_provider, provider_http_options
 from google import genai
 from dataia.common.models import Chunk, DocumentPedagogicalMetadata
 
@@ -76,10 +77,36 @@ def insert_chunks(chunks: List[Chunk]) -> bool:
     # Reindexación idempotente: se eliminan los vectores previos del documento
     if existing and existing["ids"]:
         vectorstore.delete(ids=existing["ids"])
-    # La integración de LangChain con Chroma persiste automáticamente al agregar
-    with provider_call("EMBEDDINGS_DOCUMENTOS"):
-        vectorstore.add_documents(documents, ids=ids)
+    # Lotes propios, cada uno sujeto al control de ritmo de embeddings (spec IA-02b R5).
+    # La integración de LangChain con Chroma persiste automáticamente al agregar.
+    for batch, batch_ids, batch_tokens in _embedding_batches(documents, ids):
+        call_provider(
+            "EMBEDDINGS_DOCUMENTOS",
+            lambda: vectorstore.add_documents(batch, ids=batch_ids),
+            batch_tokens,
+            EMBEDDING_LIMITER,
+            requests=len(batch),
+        )
     return False
+
+def _embedding_batches(documents: List[Document], ids: List[str]):
+    """
+    Lotes de hasta DATAIA_EMBEDDING_BATCH_SIZE chunks y, como máximo, un tercio de
+    los tokens por minuto de embeddings: ningún lote agota la cuota por sí solo.
+    """
+    max_chunks = int(os.getenv("DATAIA_EMBEDDING_BATCH_SIZE", "20"))
+    max_tokens = max(1, EMBEDDING_LIMITER.limits()[1] // 3)
+    batch, batch_ids, batch_tokens = [], [], 0
+    for doc, doc_id in zip(documents, ids):
+        tokens = estimate_tokens(doc.page_content)
+        if batch and (len(batch) >= max_chunks or batch_tokens + tokens > max_tokens):
+            yield batch, batch_ids, batch_tokens
+            batch, batch_ids, batch_tokens = [], [], 0
+        batch.append(doc)
+        batch_ids.append(doc_id)
+        batch_tokens += tokens
+    if batch:
+        yield batch, batch_ids, batch_tokens
 
 def get_document_chunks(document_id: str) -> List[Document]:
     """

@@ -24,9 +24,11 @@ class FormatoSalidaEnum(str, Enum):
 
 
 class NichoSectorEnum(str, Enum):
+    """Sector al que se adaptan ejemplos y analogías (spec IA-02c R4)."""
+    TI = "TI"
     FINTECH = "Fintech"
     SALUD = "Salud"
-    ECOMMERCE = "E-commerce"
+    MARKETING_DIGITAL = "Marketing digital"
     GENERAL = "General"
 
 

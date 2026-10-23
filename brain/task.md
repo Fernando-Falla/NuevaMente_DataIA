@@ -52,6 +52,14 @@
   - [x] Clasificación de chunks en lotes, con caché por hash del texto y modelo configurable (`GEMINI_MODEL`).
   - [x] ChromaDB con ids estables, actualización de metadata sin recalcular embeddings y registro por documento.
   - [x] 15 pruebas automáticas sin red ni LLM en `tests/test_dataia.py`; validación con Gemini real sobre los PDFs de VCN, JWT y microservicios.
+- [x] **Fase A2: Tamaño, cuota y dominios** (specs `ia02_tamano_y_cuota.md` e `ia02_dominios.md`)
+  - [x] Límites de archivo, páginas y tokens antes de llamar al LLM.
+  - [x] Metadata del documento a partir de un resumen acotado (8.000 tokens).
+  - [x] Control de ritmo por minuto, espera ante 429 y embeddings por lotes de tokens.
+  - [x] Detección de dominio (TI, Fintech, Salud, Marketing digital) con léxico de respaldo; nichos actualizados.
+  - [x] Perfiles, consulta y contenido de contingencia neutrales; pautas por dominio.
+  - [x] Validación real: `.reports/ia02-tamano-y-dominios-2026-10-22.md`.
+  - [ ] Validar con documentos reales de Fintech, Salud y Marketing digital (hoy son ficticios).
 - [ ] **Fase 5: Recuperación (IA-05)**
   - [ ] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`; la similitud queda como apoyo.
 - [ ] **Fase 6: Generación LLM (IA-06)**
