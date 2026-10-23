@@ -134,6 +134,61 @@ class PaqueteContenidoAdaptado(BaseModel):
     ]
 
 
+# --- Esquemas de generación: uno por formato (spec IA-06 R6) ---
+# El generador recibe solo el del formato pedido; la respuesta conserva la forma
+# de PaqueteContenidoAdaptado.
+
+class _PaqueteBase(BaseModel):
+    titulo: str = Field(..., description="Título del material generado")
+    introduccion_contextualizada: str = Field(..., description="Introducción adaptada al perfil y al nicho")
+
+
+class PaqueteFlashcards(_PaqueteBase):
+    items: List[FlashcardItem] = Field(..., description="Entre 4 y 8 tarjetas")
+
+
+class PaqueteQuiz(_PaqueteBase):
+    items: List[QuizItem] = Field(..., description="Entre 3 y 5 preguntas")
+
+
+class PaqueteResumen(_PaqueteBase):
+    items: ResumenEjecutivoItem
+
+
+class PaqueteGuia(_PaqueteBase):
+    items: TutorialItem
+
+
+class SubtemaMapa(BaseModel):
+    etiqueta: str = Field(..., description="Subtema concreto del documento, en pocas palabras")
+    detalles: List[str] = Field(default_factory=list, description="0 a 3 detalles breves del subtema")
+
+
+class RamaMapa(BaseModel):
+    etiqueta: str = Field(..., description="Idea principal del documento, en pocas palabras")
+    subtemas: List[SubtemaMapa] = Field(..., description="Entre 2 y 5 subtemas")
+
+
+class MapaMentalGenerado(BaseModel):
+    """Mapa sin recursión (spec IA-06 R7): el código arma el árbol con ids y el Mermaid."""
+    nodo_central: str = Field(..., description="Tema central del documento")
+    descripcion_general: str = Field(..., description="Síntesis breve del alcance del mapa")
+    ramas: List[RamaMapa] = Field(..., description="Entre 3 y 6 ramas principales")
+
+
+class PaqueteMapaMental(_PaqueteBase):
+    items: MapaMentalGenerado
+
+
+ESQUEMA_GENERACION_POR_FORMATO = {
+    FormatoSalidaEnum.FLASHCARDS.value: PaqueteFlashcards,
+    FormatoSalidaEnum.QUIZ_INTERACTIVO.value: PaqueteQuiz,
+    FormatoSalidaEnum.RESUMEN_EJECUTIVO.value: PaqueteResumen,
+    FormatoSalidaEnum.GUIA_PASO_A_PASO.value: PaqueteGuia,
+    FormatoSalidaEnum.MAPA_MENTAL.value: PaqueteMapaMental,
+}
+
+
 class AdaptacionContenidoRequest(BaseModel):
     documento_titulo: str = Field(..., min_length=3, max_length=150, pattern=r"^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s\-\.,_]+$")
     documento_contenido: str = Field(..., min_length=20, max_length=50000)

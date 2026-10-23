@@ -26,18 +26,23 @@ INSTRUCCIONES_FORMATOS = {
         "- pista_didactica: Pista orientadora sin revelar directamente la respuesta."
     ),
     FormatoSalidaEnum.MAPA_MENTAL: (
-        "FORMATO SOLICITADO: MAPA MENTAL JERÁRQUICO (Estructura de Árbol + Mermaid.js).\n"
-        "Genera una estructura de árbol conceptual centrada en el tema principal.\n"
-        "Incluye:\n"
-        "- nodo_central: El núcleo temático.\n"
-        "- descripcion_general: Breve síntesis del alcance.\n"
-        "- arbol: Lista jerárquica de nodos y subnodos.\n"
-        "- codigo_mermaid: Bloque formal con sintaxis 'mindmap' de Mermaid.js válido."
+        "FORMATO SOLICITADO: MAPA MENTAL JERÁRQUICO DE TRES NIVELES.\n"
+        "Organiza el contenido del documento alrededor de su tema central:\n"
+        "- nodo_central: el tema central.\n"
+        "- descripcion_general: síntesis breve del alcance del mapa.\n"
+        "- ramas: entre 3 y 6 ideas principales del documento. Cada rama tiene entre 2 y 5 subtemas, "
+        "y cada subtema entre 0 y 3 detalles breves (cifras, ejemplos o condiciones de la fuente).\n"
+        "Las etiquetas son frases cortas (máximo 8 palabras), no oraciones completas. "
+        "No escribas código Mermaid: el diagrama se genera a partir de las ramas."
     ),
     FormatoSalidaEnum.GUIA_PASO_A_PASO: (
         "FORMATO SOLICITADO: GUÍA PASO A PASO (TUTORIAL PRÁCTICO).\n"
-        "Incluye prerrequisitos, lista numerada de pasos con instrucciones detalladas, "
-        "bloques de comandos/código cuando aplique y comprobaciones de éxito."
+        "Construye la guía solo con los procedimientos que describe la fuente:\n"
+        "- prerrequisitos: lo que se necesita antes de empezar.\n"
+        "- pasos: lista numerada (numero_paso desde 1) con titulo_paso, instrucciones detalladas, "
+        "bloque_codigo cuando la fuente incluya comandos o código, y resultado_esperado como comprobación.\n"
+        "- resumen_cierre: síntesis de lo logrado al completar la guía.\n"
+        "No inventes pasos ni comandos que la fuente no describa."
     ),
     FormatoSalidaEnum.RESUMEN_EJECUTIVO: (
         "FORMATO SOLICITADO: RESUMEN EJECUTIVO (TL;DR ESTRATÉGICO).\n"

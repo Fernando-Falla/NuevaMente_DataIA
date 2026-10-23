@@ -27,14 +27,15 @@ def nodo_analizador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
     pautas_dominio = obtener_pautas_dominio(state.get("dominio_documento"))
     prompt_combinado = f"{prompt_sistema}\n\n{pautas_dominio}\n\n{instrucciones_formato}"
 
-    # Extracción heurística rápida de conceptos clave preliminares
-    texto_total = " ".join([f.get("contenido", "") for f in fragmentos])
-    if not texto_total:
-        texto_total = state.get("documento_contenido", "")
-
-    # Extraer conceptos clave de apoyo
-    palabras = [p.strip(".,;:()[]{}") for p in texto_total.split() if len(p) > 4 and p[0].isupper()]
-    conceptos_unicos = list(dict.fromkeys(palabras))[:6]
+    # Conceptos clave de la metadata pedagógica del documento (spec IA-06 R5);
+    # la heurística de palabras con mayúscula queda solo como respaldo
+    conceptos_unicos = list(state.get("conceptos_clave") or [])[:8]
+    if not conceptos_unicos:
+        texto_total = " ".join([f.get("contenido", "") for f in fragmentos])
+        if not texto_total:
+            texto_total = state.get("documento_contenido", "")
+        palabras = [p.strip(".,;:()[]{}") for p in texto_total.split() if len(p) > 4 and p[0].isupper()]
+        conceptos_unicos = list(dict.fromkeys(palabras))[:6]
     if not conceptos_unicos:
         conceptos_unicos = [titulo, "Fundamentos", "Buenas Prácticas"]
 

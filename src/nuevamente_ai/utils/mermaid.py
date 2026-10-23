@@ -35,19 +35,37 @@ def generar_mermaid_desde_arbol(nodo_central: str, arbol: List[Dict[str, Any]]) 
     raiz = limpiar_texto_nodo_mermaid(nodo_central) or "Mapa Mental"
     lineas = ["mindmap", f"  root(({raiz}))"]
 
-    for rama in arbol:
-        etiqueta_rama = limpiar_texto_nodo_mermaid(rama.get("etiqueta", "Rama Principal"))
-        lineas.append(f"    {etiqueta_rama}")
-        subnodos = rama.get("subnodos", [])
-        if isinstance(subnodos, list):
-            for sub in subnodos:
-                if isinstance(sub, dict):
-                    txt_sub = limpiar_texto_nodo_mermaid(sub.get("etiqueta", "Detalle"))
-                else:
-                    txt_sub = limpiar_texto_nodo_mermaid(str(sub))
-                lineas.append(f"      {txt_sub}")
+    def agregar(nodos: List[Any], sangria: int) -> None:
+        # Recursivo: el árbol puede tener ramas, subtemas y detalles (spec IA-06 R7)
+        for nodo in nodos if isinstance(nodos, list) else []:
+            if isinstance(nodo, dict):
+                etiqueta = limpiar_texto_nodo_mermaid(nodo.get("etiqueta", "Concepto"))
+                hijos = nodo.get("subnodos", [])
+            else:
+                etiqueta, hijos = limpiar_texto_nodo_mermaid(str(nodo)), []
+            lineas.append(" " * sangria + etiqueta)
+            agregar(hijos, sangria + 2)
 
+    agregar(arbol, 4)
     return "\n".join(lineas)
+
+
+def mapa_generado_a_arbol(ramas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Convierte el mapa sin recursión que genera el modelo (ramas → subtemas →
+    detalles) en el árbol del contrato (NodoMapaMental con ids "1", "1.2", "1.2.1").
+    """
+    arbol = []
+    for i, rama in enumerate(ramas, start=1):
+        subnodos = []
+        for j, subtema in enumerate(rama.get("subtemas", []), start=1):
+            detalles = [
+                {"id": f"{i}.{j}.{k}", "etiqueta": detalle, "subnodos": []}
+                for k, detalle in enumerate(subtema.get("detalles", []), start=1)
+            ]
+            subnodos.append({"id": f"{i}.{j}", "etiqueta": subtema.get("etiqueta", ""), "subnodos": detalles})
+        arbol.append({"id": str(i), "etiqueta": rama.get("etiqueta", ""), "subnodos": subnodos})
+    return arbol
 
 
 def sanitizar_codigo_mermaid(

@@ -17,6 +17,8 @@ class EstadoPipelineAdaptacion(TypedDict):
     nivel_detalle: str
     # Detectado por Data/IA: TI, Fintech, Salud, Marketing digital (spec IA-02c)
     dominio_documento: str
+    # Metadata pedagógica del documento: conceptos clave, prerrequisitos y resumen (spec IA-06 R5)
+    metadata_documento: Dict[str, Any]
 
     # Contexto intermedio generado por agentes
     fragmentos_relevantes: List[Dict[str, Any]]

@@ -66,14 +66,15 @@
   - [x] Embeddings locales (fastembed, mpnet) por defecto tras compararlos con Gemini.
   - [x] Validación con 6 documentos reales de Salud, Fintech y Marketing digital.
   - Reporte: `.reports/proveedores-y-embeddings-2026-10-22.md`.
-- [ ] **Fase 5: Recuperación (IA-05)**
-  - [ ] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`; la similitud queda como apoyo.
-- [ ] **Fase 6: Generación LLM (IA-06)**
-  - [ ] Prompt System y perfiles educativos.
-  - [ ] Generación de los 5 formatos × 3 perfiles (ADR-001: Flashcards, Quiz, Resumen, Mapa Mental, Guía Paso a Paso).
-  - [ ] Mapa Mental: esquema de 2–3 niveles sin recursión y Mermaid generado desde el árbol (hoy 1 nivel y Mermaid desalineado).
-  - [ ] Guía Paso a Paso: verificar pertinencia con `tipo_contenido` (procedimiento/código) e informar si el documento no es adecuado.
-  - [ ] Conceptos clave y metadata pedagógica del documento en la respuesta.
+- [x] **Fase 5: Recuperación (IA-05)** (spec `ia05_ia06_contexto_y_formatos.md`)
+  - [x] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`, presupuesto de 8.000 tokens; la similitud con los conceptos clave desempata. Entrada −37 a −42 % en documentos medianos.
+- [x] **Fase 6: Generación LLM (IA-06)**
+  - [x] Prompt System y perfiles educativos.
+  - [x] Generación de los 5 formatos × 3 perfiles (ADR-001), un esquema por formato: 15/15 con score 1,0.
+  - [x] Mapa Mental: esquema de 3 niveles sin recursión y Mermaid generado desde el árbol (27–40 nodos).
+  - [x] Guía Paso a Paso: rechazo `FORMATO_NO_ADECUADO` en documentos sin procedimientos.
+  - [x] Conceptos clave y metadata pedagógica del documento en la respuesta.
+  - Reporte: `.reports/ia05-ia06-contexto-y-formatos-2026-10-22.md`.
 - [x] **Fase 7: Validación de Fidelidad (IA-07)** (spec `specs/nueva_mente/ia07_validacion_fidelidad.md`)
   - [x] Comprobación contra fuentes: juez LLM con veredicto por ítem; score calculado en código.
   - [x] Recursos didácticos (analogías, `pista_didactica`) admitidos si no introducen datos falsos; distractores de quiz excluidos.

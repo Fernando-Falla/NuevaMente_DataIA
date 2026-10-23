@@ -4,7 +4,7 @@ Pipeline de **ingestión → chunking → embeddings → vector store → retrie
 
 Transforma documentación técnica (PDF, Markdown, TXT) en fragmentos trazables, semánticamente enriquecidos, listos para RAG y generación de contenido educativo adaptado.
 
-> **Alcance actual:** IA-02 a IA-04 completados y mejorados (Fase A); IA-07 (validación de fidelidad) completado. La generación (IA-06) usa el AI Core del equipo adaptado en `src/nuevamente_ai/`.  
+> **Alcance actual:** IA-02 a IA-07 completados: ingestión, chunking, vector store, selección de contexto por cobertura (IA-05), generación en 5 formatos × 3 perfiles (IA-06) y validación de fidelidad (IA-07). La generación usa el AI Core del equipo adaptado en `src/nuevamente_ai/`.  
 > **Pendiente:** IA-05 (selección de contexto por cobertura), IA-06 (uso de la metadata pedagógica), IA-08 (contrato JSON con el backend).
 
 ---
@@ -270,8 +270,8 @@ El reporte se guardará automáticamente en `.reports/`.
 |IA-03|Chunking jerárquico consciente + metadata|Completado|
 |IA-04|Embeddings Gemini + ChromaDB + Validación|Completado|
 |Fase A|Mejoras de IA-02 a IA-04 (ver `docs/MEJORAS_FASE_A.md`)|Completado|
-|IA-05|Retriever / RAG|Pendiente|
-|IA-06|Generación LLM + perfiles|Pendiente|
+|IA-05|Selección de contexto por cobertura y tipo de contenido (ver `.reports/ia05-ia06-contexto-y-formatos-2026-10-22.md`)|Completado|
+|IA-06|Generación en 5 formatos × 3 perfiles; mapa mental de 3 niveles; guía solo en documentos con procedimientos|Completado|
 |IA-02b/c|Límites de tamaño, control de cuota y dominios TI, Fintech, Salud y Marketing digital|Completado|
 |Proveedores|Proveedor de LLM por etapa (Gemini/Groq) y embeddings locales por defecto|Completado|
 |IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
