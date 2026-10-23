@@ -283,6 +283,11 @@ Detalle de avance y tareas: `brain/implementation_plan.md`, `brain/task.md`.
 
 ## Decisiones técnicas relevantes
 
+Las decisiones que modifican la constitución se registran como ADR en `specs/nueva_mente/decisiones/` y en su §7 (registro de enmiendas):
+
+* **ADR-001:** cinco formatos de salida (Flashcards, Quiz Interactivo, Resumen Ejecutivo, Mapa Mental, Guía Paso a Paso) × tres perfiles. El formato apenas influye en el consumo de tokens; entre el 90 % y el 98 % es la entrada (fragmentos del documento).
+* **ADR-002:** embeddings locales por defecto y proveedor de LLM por etapa (Gemini/Groq).
+
 * Extracción PDF con `import pymupdf` (no `fitz` deprecado).
 * **Chunking Estructural**: Extiende `RecursiveCharacterTextSplitter` para proteger bloques de código (\`\`\`) y tablas Markdown antes del corte, previniendo pérdida de contexto semántico.
 * **Metadata Pedagógica**: Tanto a nivel documento como a nivel chunk, se utiliza `gemini-2.5-flash` con caché local en `.dataia_cache/` para extraer conceptos, nivel de dificultad y prerrequisitos (habilitando IA-06).

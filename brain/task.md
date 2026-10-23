@@ -70,7 +70,10 @@
   - [ ] Selección de contexto por cobertura (sección y `tipo_contenido`) con `get_document_chunks`; la similitud queda como apoyo.
 - [ ] **Fase 6: Generación LLM (IA-06)**
   - [ ] Prompt System y perfiles educativos.
-  - [ ] Generación de Formatos (Quiz, Flashcards, etc).
+  - [ ] Generación de los 5 formatos × 3 perfiles (ADR-001: Flashcards, Quiz, Resumen, Mapa Mental, Guía Paso a Paso).
+  - [ ] Mapa Mental: esquema de 2–3 niveles sin recursión y Mermaid generado desde el árbol (hoy 1 nivel y Mermaid desalineado).
+  - [ ] Guía Paso a Paso: verificar pertinencia con `tipo_contenido` (procedimiento/código) e informar si el documento no es adecuado.
+  - [ ] Conceptos clave y metadata pedagógica del documento en la respuesta.
 - [x] **Fase 7: Validación de Fidelidad (IA-07)** (spec `specs/nueva_mente/ia07_validacion_fidelidad.md`)
   - [x] Comprobación contra fuentes: juez LLM con veredicto por ítem; score calculado en código.
   - [x] Recursos didácticos (analogías, `pista_didactica`) admitidos si no introducen datos falsos; distractores de quiz excluidos.

@@ -59,12 +59,12 @@ Todos los fallos se devuelven como objetos de error tipados con código y mensaj
 
 | Capa                    | Tecnología oficial                          | Notas       |
 |-------------------------|---------------------------------------------|-------      |
-| Lenguaje                | Python 3.11+                                | -           |
+| Lenguaje                | Python 3.11+ (entorno actual: 3.14)         | -           |
 | Tipado / Validación     | Pydantic v2                                 | Obligatorio |
 | Gestión de dependencias | uv + pyproject.toml                         | -           |
-| Extracción PDF          | PyMuPDF (fitz)                              | Primario    |
+| Extracción PDF          | PyMuPDF (`pymupdf`) + `pymupdf4llm`         | Primario. Enmienda ADR-002 |
 | Chunking                | LangChain RecursiveCharacterTextSplitter    | 800 tokens / 150 overlap (inicial) |
-| Embeddings              | Gemini `text-embedding-004`                 | Fallback local permitido |
+| Embeddings              | Locales (fastembed, `paraphrase-multilingual-mpnet-base-v2`) | Por defecto; Gemini `gemini-embedding-001` opcional. Enmienda ADR-002 |
 | Vector Store            | ChromaDB (persistente local)                | Migración a OCI evaluada después |
 | Orquestación posterior  | LangGraph                                   | Responsabilidad de IA-05/06 |
 
@@ -128,4 +128,11 @@ Posible migración posterior a OCI Always Free.
 DataIA no expone FastAPI propia. Expone funciones internas limpias.
 Backend es el responsable de recibir el archivo y guardarlo en OCI.
 Perfiles MVP: Principiante/Junior · Líder Técnico · Gestor Ejecutivo.
-Formatos MVP: Flashcards · Quiz Interactivo · Resumen Ejecutivo (TL;DR).
+Formatos MVP: Flashcards · Quiz Interactivo · Resumen Ejecutivo (TL;DR) · Mapa Mental · Guía Paso a Paso (enmienda ADR-001).
+
+## 7. Registro de Enmiendas
+
+| Fecha | Sección | Cambio | Decisión |
+|---|---|---|---|
+| 2026-10-22 | §6 Formatos MVP | De 3 a 5 formatos: se agregan Mapa Mental y Guía Paso a Paso | `specs/nueva_mente/decisiones/ADR-001-cinco-formatos-de-salida.md` |
+| 2026-10-22 | §2 Stack | Embeddings locales por defecto (Gemini opcional); extracción con `pymupdf4llm`; proveedor de LLM por etapa (Gemini/Groq) | `specs/nueva_mente/decisiones/ADR-002-embeddings-locales-y-proveedor-por-etapa.md` |
