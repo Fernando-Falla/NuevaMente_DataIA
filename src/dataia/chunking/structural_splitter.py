@@ -7,9 +7,9 @@ import logging
 from bisect import bisect_right
 from typing import List, Dict, Literal, NamedTuple, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from dataia.common.credentials import get_gemini_model, get_google_api_key
+from dataia.common.credentials import get_google_api_key
 from dataia.common.models import ExtractedContent, Chunk, ChunkMetadata
-from langchain_google_genai import ChatGoogleGenerativeAI
+from dataia.common.providers import create_gemini_llm, provider_call
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def _strict() -> bool:
     return os.getenv("IA_STRICT_PROVIDERS") == "1"
 
 def _get_llm():
-    return ChatGoogleGenerativeAI(model=get_gemini_model(), temperature=0.0, google_api_key=get_google_api_key())
+    return create_gemini_llm(api_key=get_google_api_key())
 
 def _cache_file(text: str) -> str:
     return os.path.join(CACHE_DIR, f"{hashlib.sha256(text.encode('utf-8')).hexdigest()[:24]}.json")
@@ -77,7 +77,8 @@ def enrich_chunk_metadata(chunk_id: str, text: str) -> ChunkPedagogicalInfo:
             "Analiza el siguiente fragmento de texto técnico y determina su tipo de contenido, nivel de dificultad (1-5) y concepto principal.\n\n"
             f"Fragmento:\n{text}\n"
         )
-        result = structured_llm.invoke(prompt)
+        with provider_call("ENRIQUECIMIENTO_FRAGMENTO"):
+            result = structured_llm.invoke(prompt)
         if result is None:
             raise ValueError("El LLM no devolvió una clasificación válida.")
         _write_cache(text, result)
@@ -98,7 +99,8 @@ def _enrich_batch(texts: List[str]) -> Dict[int, ChunkPedagogicalInfo]:
         "su nivel de dificultad (1-5) y su concepto principal. Responde una entrada por fragmento.\n\n"
         f"{fragmentos}\n"
     )
-    result = structured_llm.invoke(prompt)
+    with provider_call("ENRIQUECIMIENTO_FRAGMENTOS_LOTE"):
+        result = structured_llm.invoke(prompt)
     if result is None:
         return {}
     return {

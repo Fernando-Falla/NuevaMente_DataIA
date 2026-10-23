@@ -4,8 +4,8 @@ Pipeline de **ingestión → chunking → embeddings → vector store → retrie
 
 Transforma documentación técnica (PDF, Markdown, TXT) en fragmentos trazables, semánticamente enriquecidos, listos para RAG y generación de contenido educativo adaptado.
 
-> **Alcance actual:** IA-02, IA-03 e IA-04 completados (flujo local determinista y enriquecido por LLM).  
-> **Pendiente:** IA-05 (Retriever), IA-06 (Generación LLM), IA-07 (Validación de fidelidad), IA-08 (Integración Backend / JSON de salida).
+> **Alcance actual:** IA-02 a IA-04 completados y mejorados (Fase A); IA-07 (validación de fidelidad) completado. La generación (IA-06) usa el AI Core del equipo adaptado en `src/nuevamente_ai/`.  
+> **Pendiente:** IA-05 (selección de contexto por cobertura), IA-06 (uso de la metadata pedagógica), IA-08 (contrato JSON con el backend).
 
 ---
 
@@ -64,17 +64,22 @@ Dependencias declaradas en `pyproject.toml` y exportadas en `requirements.txt`.
 ```text
 .
 ├── src/
-│   └── dataia/                   # Core del pipeline
-│       ├── ingestion/            # IA-02: Extracción y enriquecimiento de metadata
-│       ├── chunking/             # IA-03: Splitter estructural y metadata por chunk
-│       ├── vectorstore/          # IA-04: Cliente ChromaDB
-│       └── common/               # Modelos Pydantic compartidos
+│   ├── dataia/                   # Data/IA: IA-02 a IA-04
+│   │   ├── ingestion/            # IA-02: Extracción y enriquecimiento de metadata
+│   │   ├── chunking/             # IA-03: Splitter estructural y metadata por chunk
+│   │   ├── vectorstore/          # IA-04: Cliente ChromaDB y registro por documento
+│   │   └── common/               # Modelos Pydantic, credenciales y límites del proveedor
+│   └── nuevamente_ai/            # Generación (IA-05 a IA-08): grafo LangGraph, agentes, prompts y schemas
+│       └── agents/critico.py     # IA-07: juez de fidelidad por ítem
 ├── tests/
-│   └── test_dataia.py            # Pruebas sin red ni LLM de IA-02 a IA-04
+│   ├── test_dataia.py            # Pruebas sin red ni LLM de IA-02 a IA-04
+│   ├── test_critico.py           # Pruebas del agente crítico (IA-07)
+│   └── test_ai_core.py           # Pruebas del grafo y del pipeline completo (embeddings simulados)
 ├── scripts/
 │   ├── test_pipeline_local.py    # Prueba E2E local IA-02→IA-04 (incluye auditoría visual)
 │   ├── validate_retrieval.py     # Validación IA-04 midiendo Recall@4 y Precision@4
-│   └── comparar_chunking.py      # Compara extracción y chunking entre dos versiones (sin LLM)
+│   ├── comparar_chunking.py      # Compara extracción y chunking entre dos versiones (sin LLM)
+│   └── run_pipeline_real.py      # Pipeline completo IA-02 → IA-08 con Gemini real
 ├── brain/                        # Documentación viva (task.md, implementation_plan.md)
 ├── docs/                         # Documentación de cambios (MEJORAS_FASE_A.md)
 ├── pyproject.toml / uv.lock      # Configuración de dependencias (uv)
@@ -184,7 +189,15 @@ $env:GOOGLE_API_KEY = "TU_API_KEY_REAL"
 uv run python scripts/test_pipeline_local.py "ruta\al\documento.pdf"
 ```
 
-### 2. Validación de Recuperación (IA-04)
+### 2. Pipeline completo con Gemini real (IA-02 → IA-08)
+
+```powershell
+uv run --system-certs python scripts/run_pipeline_real.py "ruta\al\documento.pdf" Junior Flashcards General
+```
+
+Perfiles: `Junior`, `Senior`, `Ejecutivo`. Formatos: `Flashcards`, `"Quiz Interactivo"`, `"Resumen Ejecutivo"`, `"Mapa Mental"`. La respuesta JSON se guarda en `.reports/`.
+
+### 3. Validación de Recuperación (IA-04)
 
 Una vez que tengas documentos ingestados en `.chromadb_data`, ejecuta la validación de Recall y Precision usando las 5 consultas representativas (utiliza LLM-as-a-judge):
 
@@ -207,7 +220,7 @@ El reporte se guardará automáticamente en `.reports/`.
 |Fase A|Mejoras de IA-02 a IA-04 (ver `docs/MEJORAS_FASE_A.md`)|Completado|
 |IA-05|Retriever / RAG|Pendiente|
 |IA-06|Generación LLM + perfiles|Pendiente|
-|IA-07|Validación de fidelidad|Pendiente|
+|IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
 |IA-08|Integración Backend (JSON contrato)|Pendiente|
 
 Detalle de avance y tareas: `brain/implementation_plan.md`, `brain/task.md`.
@@ -225,6 +238,8 @@ Detalle de avance y tareas: `brain/implementation_plan.md`, `brain/task.md`.
 ---
 
 ## Integración con el repositorio del equipo
+
+`src/nuevamente_ai/` proviene del AI Core del equipo (`nuevamente-ai-core/src/ai`, rama `feat/backend-ia-integration`, commit `c0fb82b`), adaptado para importar `dataia` directamente. Cambios locales: crítico por ítem (IA-07), corrección del auditor y pruebas con embeddings simulados. `src/dataia/common/providers.py` también proviene de ese commit, con clave y modelo configurables.
 
 Este paquete corresponde al área **Data/IA** del monorepo:
 

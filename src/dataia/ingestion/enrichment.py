@@ -1,9 +1,9 @@
 import os
 import json
 import logging
-from dataia.common.credentials import get_gemini_model, get_google_api_key
+from dataia.common.credentials import get_google_api_key
 from dataia.common.models import DocumentPedagogicalMetadata
-from langchain_google_genai import ChatGoogleGenerativeAI
+from dataia.common.providers import create_gemini_llm, provider_call
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def enrich_document_metadata(document_id: str, full_text: str) -> DocumentPedago
             pass # Fallback to re-generating
 
     try:
-        llm = ChatGoogleGenerativeAI(model=get_gemini_model(), temperature=0.0, google_api_key=get_google_api_key())
+        llm = create_gemini_llm(api_key=get_google_api_key())
         structured_llm = llm.with_structured_output(DocumentPedagogicalMetadata)
         
         prompt = (
@@ -36,7 +36,8 @@ def enrich_document_metadata(document_id: str, full_text: str) -> DocumentPedago
             f"Documento:\n{full_text[:4000000]}\n" # Limiting slightly to avoid exceeding 1M tokens just in case, but 5MB is well within 1M tokens.
         )
         
-        result = structured_llm.invoke(prompt)
+        with provider_call("ENRIQUECIMIENTO_DOCUMENTO"):
+            result = structured_llm.invoke(prompt)
         
         # Ensure document_id is correct
         result.document_id = document_id

@@ -57,9 +57,11 @@
 - [ ] **Fase 6: Generación LLM (IA-06)**
   - [ ] Prompt System y perfiles educativos.
   - [ ] Generación de Formatos (Quiz, Flashcards, etc).
-- [ ] **Fase 7: Validación de Fidelidad (IA-07)**
-  - [ ] Comprobación contra fuentes.
-  - [ ] Lógica de reintentos controlados.
+- [x] **Fase 7: Validación de Fidelidad (IA-07)** (spec `specs/nueva_mente/ia07_validacion_fidelidad.md`)
+  - [x] Comprobación contra fuentes: juez LLM con veredicto por ítem; score calculado en código.
+  - [x] Recursos didácticos (analogías, `pista_didactica`) admitidos si no introducen datos falsos; distractores de quiz excluidos.
+  - [x] Lógica de reintentos controlados con retroalimentación por ítem (máximo 2 intentos).
+  - [x] Validación con Gemini real: `.reports/ia07-validacion-fidelidad-2026-10-22.md`.
 - [ ] **Fase 8: Integración Backend (IA-08)**
   - [ ] Exportación de JSON estricto y compatible.
 

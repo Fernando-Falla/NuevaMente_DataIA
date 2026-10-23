@@ -23,3 +23,5 @@ wheels/
 .speckit/
 arbol.txt
 .dataia_documents/
+# Salidas generadas por scripts/run_pipeline_real.py
+.reports/salida_*.json

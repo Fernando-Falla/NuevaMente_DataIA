@@ -1,4 +1,6 @@
 from dataia.common.models import IngestionResult, ChunkingResponse, ChunkingResult, ChunkingError
+import os
+from dataia.common.providers import is_provider_error
 from dataia.chunking.structural_splitter import perform_structural_chunking
 
 def process_chunks(ingestion_result: IngestionResult) -> ChunkingResponse:
@@ -34,6 +36,9 @@ def process_chunks(ingestion_result: IngestionResult) -> ChunkingResponse:
         )
         
     except Exception as e:
+        # En modo estricto, los fallos del proveedor se propagan para que el servicio HTTP los traduzca
+        if os.getenv("IA_STRICT_PROVIDERS") == "1" and is_provider_error(e):
+            raise
         return ChunkingError(
             codigo="ERROR_INTERNO_CHUNKING",
             mensaje=f"Error inesperado durante la segmentación del documento: {str(e)}"

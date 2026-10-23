@@ -1,10 +1,10 @@
 import os
 from typing import Optional
 
-# Modelo para la metadata pedagógica (documento y chunks). Google retira modelos
-# para las claves nuevas (gemini-2.5-flash responde 404): se cambia con
-# GEMINI_MODEL sin tocar el código.
-DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+# Modelo de todo el pipeline (metadata pedagógica, generación y juez), el mismo que
+# usa el AI Core del equipo. Google retira modelos para las claves nuevas
+# (gemini-2.5-flash responde 404): se cambia con GEMINI_MODEL sin tocar el código.
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 def get_google_api_key() -> Optional[str]:
     """
