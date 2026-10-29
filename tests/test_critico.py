@@ -159,5 +159,5 @@ def test_fallo_del_proveedor(monkeypatch, juez_simulado):
 
 def test_auditor_reconoce_contenido_adaptado():
     paquete = {"status": "exito", "contenido_adaptado": {"titulo": "JWT", "items": [{"frente": "¿Qué es un JWT?"}]}}
-    seguro, vulnerabilidades, _ = asyncio.run(AuditorAgent().auditar_seguridad_async(paquete))
+    seguro, vulnerabilidades, _ = AuditorAgent().auditar_seguridad(paquete)
     assert seguro, vulnerabilidades

@@ -31,7 +31,7 @@ class AuditorAgent:
             r"forget everything"
         ]
 
-    async def auditar_seguridad_async(self, payload_generado: Dict[str, Any]) -> Tuple[bool, list, list]:
+    def auditar_seguridad(self, payload_generado: Dict[str, Any]) -> Tuple[bool, list, list]:
         """
         Escanea el paquete generado usando heurísticas rápidas de Python.
         Retorna: (is_secure, vulnerabilidades, recomendaciones)
@@ -76,3 +76,7 @@ class AuditorAgent:
             logger.info("Auditoría Python finalizada: 0 vulnerabilidades detectadas.")
             
         return is_secure, vulnerabilidades, recomendaciones
+
+    async def auditar_seguridad_async(self, payload_generado: Dict[str, Any]) -> Tuple[bool, list, list]:
+        """Compatibilidad asíncrona."""
+        return self.auditar_seguridad(payload_generado)

@@ -1,0 +1,667 @@
+{
+  "$defs": {
+    "AuditoriaSeguridadReporte": {
+      "properties": {
+        "es_seguro": {
+          "default": true,
+          "description": "Indica si superó los controles de seguridad y sanitización",
+          "title": "Es Seguro",
+          "type": "boolean"
+        },
+        "vulnerabilidades": {
+          "description": "Vulnerabilidades o sospechas detectadas",
+          "items": {
+            "type": "string"
+          },
+          "title": "Vulnerabilidades",
+          "type": "array"
+        },
+        "recomendaciones": {
+          "description": "Recomendaciones de corrección",
+          "items": {
+            "type": "string"
+          },
+          "title": "Recomendaciones",
+          "type": "array"
+        }
+      },
+      "title": "AuditoriaSeguridadReporte",
+      "type": "object"
+    },
+    "ChunkTrazabilidad": {
+      "properties": {
+        "chunk_id": {
+          "description": "Identificador del fragmento utilizado",
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "seccion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sección o título donde se ubica el chunk",
+          "title": "Seccion"
+        },
+        "pagina_inicio": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Página de inicio en el documento original",
+          "title": "Pagina Inicio"
+        },
+        "pagina_fin": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Página de término en el documento original",
+          "title": "Pagina Fin"
+        },
+        "tipo_contenido": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clasificación del tipo de contenido (definicion, afirmacion, etc.)",
+          "title": "Tipo Contenido"
+        }
+      },
+      "required": [
+        "chunk_id"
+      ],
+      "title": "ChunkTrazabilidad",
+      "type": "object"
+    },
+    "DocumentoMetadataResumen": {
+      "properties": {
+        "document_id": {
+          "description": "Identificador único del documento en el almacén vectorial",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "titulo": {
+          "description": "Título del documento",
+          "title": "Titulo",
+          "type": "string"
+        },
+        "dominio": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "General",
+          "description": "Dominio clasificado (TI, Fintech, Salud, Marketing digital, etc.)",
+          "title": "Dominio"
+        }
+      },
+      "required": [
+        "document_id",
+        "titulo"
+      ],
+      "title": "DocumentoMetadataResumen",
+      "type": "object"
+    },
+    "FlashcardItem": {
+      "properties": {
+        "frente": {
+          "description": "Concepto, término o pregunta concisa",
+          "title": "Frente",
+          "type": "string"
+        },
+        "dorso": {
+          "description": "Explicación pedagógica, definición o respuesta",
+          "title": "Dorso",
+          "type": "string"
+        },
+        "pista_didactica": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Analogía o mnemotecnia de apoyo",
+          "title": "Pista Didactica"
+        },
+        "categoria_dificultad": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "Intermedio",
+          "description": "Básico, Intermedio o Avanzado",
+          "title": "Categoria Dificultad"
+        }
+      },
+      "required": [
+        "frente",
+        "dorso"
+      ],
+      "title": "FlashcardItem",
+      "type": "object"
+    },
+    "FormatoSalidaEnum": {
+      "enum": [
+        "Flashcards",
+        "Quiz Interactivo",
+        "Mapa Mental",
+        "Guia Paso a Paso",
+        "Resumen Ejecutivo"
+      ],
+      "title": "FormatoSalidaEnum",
+      "type": "string"
+    },
+    "MapaMentalItem": {
+      "properties": {
+        "nodo_central": {
+          "description": "Concepto núcleo",
+          "title": "Nodo Central",
+          "type": "string"
+        },
+        "descripcion_general": {
+          "description": "Breve síntesis del mapa",
+          "title": "Descripcion General",
+          "type": "string"
+        },
+        "arbol": {
+          "description": "Estructura arbórea de conceptos",
+          "items": {
+            "$ref": "#/$defs/NodoMapaMental"
+          },
+          "title": "Arbol",
+          "type": "array"
+        },
+        "codigo_mermaid": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sintaxis mindmap formal en Mermaid.js",
+          "title": "Codigo Mermaid"
+        }
+      },
+      "required": [
+        "nodo_central",
+        "descripcion_general"
+      ],
+      "title": "MapaMentalItem",
+      "type": "object"
+    },
+    "MetadatosAprendizaje": {
+      "properties": {
+        "perfil_aplicado": {
+          "$ref": "#/$defs/PerfilDestinatarioEnum"
+        },
+        "formato_generado": {
+          "$ref": "#/$defs/FormatoSalidaEnum"
+        },
+        "tiempo_estimado_estudio_minutos": {
+          "maximum": 180,
+          "minimum": 1,
+          "title": "Tiempo Estimado Estudio Minutos",
+          "type": "integer"
+        },
+        "conceptos_clave": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Conceptos Clave",
+          "type": "array"
+        },
+        "nicho_contexto": {
+          "$ref": "#/$defs/NichoSectorEnum",
+          "default": "General"
+        },
+        "resumen_ejecutivo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Síntesis pedagógica del documento",
+          "title": "Resumen Ejecutivo"
+        }
+      },
+      "required": [
+        "perfil_aplicado",
+        "formato_generado",
+        "tiempo_estimado_estudio_minutos",
+        "conceptos_clave"
+      ],
+      "title": "MetadatosAprendizaje",
+      "type": "object"
+    },
+    "NichoSectorEnum": {
+      "description": "Sector al que se adaptan ejemplos y analogías (spec IA-02c R4).",
+      "enum": [
+        "TI",
+        "Fintech",
+        "Salud",
+        "Marketing digital",
+        "General"
+      ],
+      "title": "NichoSectorEnum",
+      "type": "string"
+    },
+    "NodoMapaMental": {
+      "properties": {
+        "id": {
+          "description": "Identificador único del nodo",
+          "title": "Id",
+          "type": "string"
+        },
+        "etiqueta": {
+          "description": "Texto del concepto",
+          "title": "Etiqueta",
+          "type": "string"
+        },
+        "subnodos": {
+          "description": "Ramas secundarias",
+          "items": {
+            "$ref": "#/$defs/NodoMapaMental"
+          },
+          "title": "Subnodos",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "etiqueta"
+      ],
+      "title": "NodoMapaMental",
+      "type": "object"
+    },
+    "PaqueteContenidoAdaptado": {
+      "properties": {
+        "titulo": {
+          "description": "Título del material generado",
+          "title": "Titulo",
+          "type": "string"
+        },
+        "introduccion_contextualizada": {
+          "description": "Introducción adaptada al perfil",
+          "title": "Introduccion Contextualizada",
+          "type": "string"
+        },
+        "items": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FlashcardItem"
+              },
+              "type": "array"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/QuizItem"
+              },
+              "type": "array"
+            },
+            {
+              "$ref": "#/$defs/MapaMentalItem"
+            },
+            {
+              "$ref": "#/$defs/TutorialItem"
+            },
+            {
+              "$ref": "#/$defs/ResumenEjecutivoItem"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "title": "Items"
+        }
+      },
+      "required": [
+        "titulo",
+        "introduccion_contextualizada",
+        "items"
+      ],
+      "title": "PaqueteContenidoAdaptado",
+      "type": "object"
+    },
+    "PasoTutorialItem": {
+      "properties": {
+        "numero_paso": {
+          "minimum": 1,
+          "title": "Numero Paso",
+          "type": "integer"
+        },
+        "titulo_paso": {
+          "title": "Titulo Paso",
+          "type": "string"
+        },
+        "instrucciones": {
+          "title": "Instrucciones",
+          "type": "string"
+        },
+        "bloque_codigo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bloque Codigo"
+        },
+        "resultado_esperado": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resultado Esperado"
+        }
+      },
+      "required": [
+        "numero_paso",
+        "titulo_paso",
+        "instrucciones"
+      ],
+      "title": "PasoTutorialItem",
+      "type": "object"
+    },
+    "PerfilDestinatarioEnum": {
+      "enum": [
+        "Junior",
+        "Senior",
+        "Ejecutivo"
+      ],
+      "title": "PerfilDestinatarioEnum",
+      "type": "string"
+    },
+    "QuizItem": {
+      "properties": {
+        "pregunta": {
+          "description": "Pregunta de evaluación conceptual",
+          "title": "Pregunta",
+          "type": "string"
+        },
+        "opciones": {
+          "description": "Exactamente 4 alternativas",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Opciones",
+          "type": "array"
+        },
+        "indice_correcto": {
+          "description": "Índice de la respuesta correcta (0-3)",
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Indice Correcto",
+          "type": "integer"
+        },
+        "justificacion_tecnica": {
+          "description": "Explicación técnica del porqué la respuesta es correcta",
+          "title": "Justificacion Tecnica",
+          "type": "string"
+        },
+        "pista_didactica": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pista para orientar al estudiante",
+          "title": "Pista Didactica"
+        },
+        "explicacion_distractores": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Por qué las otras 3 opciones son erróneas",
+          "title": "Explicacion Distractores"
+        }
+      },
+      "required": [
+        "pregunta",
+        "opciones",
+        "indice_correcto",
+        "justificacion_tecnica"
+      ],
+      "title": "QuizItem",
+      "type": "object"
+    },
+    "ResumenEjecutivoItem": {
+      "properties": {
+        "tldr": {
+          "description": "Resumen ultra conciso en un párrafo",
+          "title": "Tldr",
+          "type": "string"
+        },
+        "puntos_clave": {
+          "description": "Puntos de alto impacto",
+          "items": {
+            "type": "string"
+          },
+          "title": "Puntos Clave",
+          "type": "array"
+        },
+        "impacto_negocio": {
+          "description": "Beneficios operativos y comerciales",
+          "title": "Impacto Negocio",
+          "type": "string"
+        },
+        "recomendaciones": {
+          "description": "Acciones de implementación",
+          "items": {
+            "type": "string"
+          },
+          "title": "Recomendaciones",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tldr",
+        "impacto_negocio"
+      ],
+      "title": "ResumenEjecutivoItem",
+      "type": "object"
+    },
+    "TrazabilidadContexto": {
+      "properties": {
+        "chunks_utilizados": {
+          "description": "Fragmentos seleccionados para el contexto RAG",
+          "items": {
+            "$ref": "#/$defs/ChunkTrazabilidad"
+          },
+          "title": "Chunks Utilizados",
+          "type": "array"
+        },
+        "total_chunks_documento": {
+          "default": 0,
+          "description": "Total de fragmentos indexados del documento",
+          "title": "Total Chunks Documento",
+          "type": "integer"
+        },
+        "total_chunks_contexto": {
+          "default": 0,
+          "description": "Cantidad de fragmentos incluidos dentro del presupuesto",
+          "title": "Total Chunks Contexto",
+          "type": "integer"
+        }
+      },
+      "title": "TrazabilidadContexto",
+      "type": "object"
+    },
+    "TutorialItem": {
+      "properties": {
+        "prerrequisitos": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prerrequisitos",
+          "type": "array"
+        },
+        "pasos": {
+          "items": {
+            "$ref": "#/$defs/PasoTutorialItem"
+          },
+          "title": "Pasos",
+          "type": "array"
+        },
+        "resumen_cierre": {
+          "title": "Resumen Cierre",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resumen_cierre"
+      ],
+      "title": "TutorialItem",
+      "type": "object"
+    },
+    "ValidacionReporte": {
+      "properties": {
+        "anclaje_fuente_score": {
+          "description": "Puntaje de fidelidad fáctica del crítico",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Anclaje Fuente Score",
+          "type": "number"
+        },
+        "aprobado": {
+          "default": true,
+          "description": "Indica si supera el umbral de fidelidad",
+          "title": "Aprobado",
+          "type": "boolean"
+        },
+        "reintentos_realizados": {
+          "default": 0,
+          "description": "Cantidad de reintentos de generación",
+          "minimum": 0,
+          "title": "Reintentos Realizados",
+          "type": "integer"
+        },
+        "auditoria_seguridad": {
+          "$ref": "#/$defs/AuditoriaSeguridadReporte"
+        }
+      },
+      "required": [
+        "anclaje_fuente_score"
+      ],
+      "title": "ValidacionReporte",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "status": {
+      "default": "exito",
+      "title": "Status",
+      "type": "string"
+    },
+    "documento": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DocumentoMetadataResumen"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Identificación y dominio del documento"
+    },
+    "metadatos": {
+      "$ref": "#/$defs/MetadatosAprendizaje"
+    },
+    "contenido_adaptado": {
+      "$ref": "#/$defs/PaqueteContenidoAdaptado"
+    },
+    "trazabilidad": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TrazabilidadContexto"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Trazabilidad de fragmentos fuente utilizados"
+    },
+    "validacion": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValidacionReporte"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Reporte de fidelidad y seguridad"
+    }
+  },
+  "required": [
+    "metadatos",
+    "contenido_adaptado"
+  ],
+  "title": "AdaptacionContenidoResponse",
+  "type": "object"
+}

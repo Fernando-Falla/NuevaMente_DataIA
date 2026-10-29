@@ -105,6 +105,7 @@ class MetadatosAprendizaje(BaseModel):
     tiempo_estimado_estudio_minutos: int = Field(..., ge=1, le=180)
     conceptos_clave: List[str] = Field(..., min_length=1)
     nicho_contexto: NichoSectorEnum = Field(default=NichoSectorEnum.GENERAL)
+    resumen_ejecutivo: Optional[str] = Field(None, description="Síntesis pedagógica del documento")
 
 
 class EvaluacionCalidad(BaseModel):
@@ -189,9 +190,65 @@ ESQUEMA_GENERACION_POR_FORMATO = {
 }
 
 
+class CodigoErrorEnum(str, Enum):
+    """Catálogo canónico de errores para integración con Backend (spec IA-08 R4)."""
+    DOMINIO_NO_SOPORTADO = "DOMINIO_NO_SOPORTADO"
+    ARCHIVO_INVALIDO = "ARCHIVO_INVALIDO"
+    ARCHIVO_DEMASIADO_GRANDE = "ARCHIVO_DEMASIADO_GRANDE"
+    DOCUMENTO_DEMASIADO_EXTENSO = "DOCUMENTO_DEMASIADO_EXTENSO"
+    FORMATO_NO_ADECUADO = "FORMATO_NO_ADECUADO"
+    FIDELIDAD_INSUFICIENTE = "FIDELIDAD_INSUFICIENTE"
+    ERROR_PROVEEDOR_LLM = "ERROR_PROVEEDOR_LLM"
+    ERROR_INTERNO = "ERROR_INTERNO"
+
+
+class DocumentoMetadataResumen(BaseModel):
+    document_id: str = Field(..., description="Identificador único del documento en el almacén vectorial")
+    titulo: str = Field(..., description="Título del documento")
+    dominio: Optional[str] = Field("General", description="Dominio clasificado (TI, Fintech, Salud, Marketing digital, etc.)")
+
+
+class ChunkTrazabilidad(BaseModel):
+    chunk_id: str = Field(..., description="Identificador del fragmento utilizado")
+    seccion: Optional[str] = Field(None, description="Sección o título donde se ubica el chunk")
+    pagina_inicio: Optional[int] = Field(None, description="Página de inicio en el documento original")
+    pagina_fin: Optional[int] = Field(None, description="Página de término en el documento original")
+    tipo_contenido: Optional[str] = Field(None, description="Clasificación del tipo de contenido (definicion, afirmacion, etc.)")
+
+
+class TrazabilidadContexto(BaseModel):
+    chunks_utilizados: List[ChunkTrazabilidad] = Field(default_factory=list, description="Fragmentos seleccionados para el contexto RAG")
+    total_chunks_documento: int = Field(default=0, description="Total de fragmentos indexados del documento")
+    total_chunks_contexto: int = Field(default=0, description="Cantidad de fragmentos incluidos dentro del presupuesto")
+
+
+class AuditoriaSeguridadReporte(BaseModel):
+    es_seguro: bool = Field(default=True, description="Indica si superó los controles de seguridad y sanitización")
+    vulnerabilidades: List[str] = Field(default_factory=list, description="Vulnerabilidades o sospechas detectadas")
+    recomendaciones: List[str] = Field(default_factory=list, description="Recomendaciones de corrección")
+
+
+class ValidacionReporte(BaseModel):
+    anclaje_fuente_score: float = Field(..., ge=0.0, le=1.0, description="Puntaje de fidelidad fáctica del crítico")
+    aprobado: bool = Field(default=True, description="Indica si supera el umbral de fidelidad")
+    reintentos_realizados: int = Field(default=0, ge=0, description="Cantidad de reintentos de generación")
+    auditoria_seguridad: AuditoriaSeguridadReporte = Field(default_factory=AuditoriaSeguridadReporte)
+
+
+class AdaptacionErrorResponseDTO(BaseModel):
+    status: str = Field(default="error")
+    codigo_error: CodigoErrorEnum = Field(..., description="Código canónico de error")
+    http_status: int = Field(..., description="Código HTTP sugerido (400, 413, 422, 503, 500)")
+    mensaje: str = Field(..., description="Mensaje explicativo para Backend y Frontend")
+    detalle: Optional[Dict[str, Any]] = Field(default=None, description="Detalles técnicos o métricas complementarias")
+    sugerencia: Optional[str] = Field(None, description="Recomendación de acción o formato alternativo")
+
+
 class AdaptacionContenidoRequest(BaseModel):
     documento_titulo: str = Field(..., min_length=3, max_length=150, pattern=r"^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s\-\.,_]+$")
-    documento_contenido: str = Field(..., min_length=20, max_length=50000)
+    documento_contenido: Optional[str] = Field(None, max_length=50000)
+    ruta_archivo: Optional[str] = Field(None, description="Ruta local o temporal del archivo subido")
+    document_id: Optional[str] = Field(None, description="ID del documento si ya está indexado en ChromaDB")
     perfil_destinatario: PerfilDestinatarioEnum = Field(default=PerfilDestinatarioEnum.JUNIOR)
     formato_salida: FormatoSalidaEnum = Field(default=FormatoSalidaEnum.FLASHCARDS)
     nicho_sector: NichoSectorEnum = Field(default=NichoSectorEnum.GENERAL)
@@ -199,7 +256,9 @@ class AdaptacionContenidoRequest(BaseModel):
 
     @field_validator('documento_contenido', 'documento_titulo')
     @classmethod
-    def sanitizar_entradas(cls, v: str) -> str:
+    def sanitizar_entradas(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
         # Detectar XSS o inyecciones de código comunes con regex estricto
         if re.search(r'<script.*?>', v, re.IGNORECASE):
             raise ValueError("Contenido bloqueado: etiquetas script (XSS) detectadas.")
@@ -223,8 +282,16 @@ class AdaptacionContenidoRequest(BaseModel):
 
 class AdaptacionContenidoResponse(BaseModel):
     status: str = Field(default="exito")
+    documento: Optional[DocumentoMetadataResumen] = Field(None, description="Identificación y dominio del documento")
     metadatos: MetadatosAprendizaje
     contenido_adaptado: PaqueteContenidoAdaptado
+    trazabilidad: Optional[TrazabilidadContexto] = Field(None, description="Trazabilidad de fragmentos fuente utilizados")
+    validacion: Optional[ValidacionReporte] = Field(None, description="Reporte de fidelidad y seguridad")
+
+
+# Alias oficiales de contrato IA-08
+AdaptacionRequestDTO = AdaptacionContenidoRequest
+AdaptacionResponseDTO = AdaptacionContenidoResponse
 
 
 class TelemetriaEstadoResponse(BaseModel):

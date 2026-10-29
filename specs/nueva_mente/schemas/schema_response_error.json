@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "CodigoErrorEnum": {
+      "description": "Catálogo canónico de errores para integración con Backend (spec IA-08 R4).",
+      "enum": [
+        "DOMINIO_NO_SOPORTADO",
+        "ARCHIVO_INVALIDO",
+        "ARCHIVO_DEMASIADO_GRANDE",
+        "DOCUMENTO_DEMASIADO_EXTENSO",
+        "FORMATO_NO_ADECUADO",
+        "FIDELIDAD_INSUFICIENTE",
+        "ERROR_PROVEEDOR_LLM",
+        "ERROR_INTERNO"
+      ],
+      "title": "CodigoErrorEnum",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "status": {
+      "default": "error",
+      "title": "Status",
+      "type": "string"
+    },
+    "codigo_error": {
+      "$ref": "#/$defs/CodigoErrorEnum",
+      "description": "Código canónico de error"
+    },
+    "http_status": {
+      "description": "Código HTTP sugerido (400, 413, 422, 503, 500)",
+      "title": "Http Status",
+      "type": "integer"
+    },
+    "mensaje": {
+      "description": "Mensaje explicativo para Backend y Frontend",
+      "title": "Mensaje",
+      "type": "string"
+    },
+    "detalle": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Detalles técnicos o métricas complementarias",
+      "title": "Detalle"
+    },
+    "sugerencia": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Recomendación de acción o formato alternativo",
+      "title": "Sugerencia"
+    }
+  },
+  "required": [
+    "codigo_error",
+    "http_status",
+    "mensaje"
+  ],
+  "title": "AdaptacionErrorResponseDTO",
+  "type": "object"
+}

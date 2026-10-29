@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "FormatoSalidaEnum": {
+      "enum": [
+        "Flashcards",
+        "Quiz Interactivo",
+        "Mapa Mental",
+        "Guia Paso a Paso",
+        "Resumen Ejecutivo"
+      ],
+      "title": "FormatoSalidaEnum",
+      "type": "string"
+    },
+    "NichoSectorEnum": {
+      "description": "Sector al que se adaptan ejemplos y analogías (spec IA-02c R4).",
+      "enum": [
+        "TI",
+        "Fintech",
+        "Salud",
+        "Marketing digital",
+        "General"
+      ],
+      "title": "NichoSectorEnum",
+      "type": "string"
+    },
+    "NivelDetalleEnum": {
+      "enum": [
+        "Didactico",
+        "Tecnico Intermedio",
+        "Exhaustivo"
+      ],
+      "title": "NivelDetalleEnum",
+      "type": "string"
+    },
+    "PerfilDestinatarioEnum": {
+      "enum": [
+        "Junior",
+        "Senior",
+        "Ejecutivo"
+      ],
+      "title": "PerfilDestinatarioEnum",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "documento_titulo": {
+      "maxLength": 150,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\\s\\-\\.,_]+$",
+      "title": "Documento Titulo",
+      "type": "string"
+    },
+    "documento_contenido": {
+      "anyOf": [
+        {
+          "maxLength": 50000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Documento Contenido"
+    },
+    "ruta_archivo": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Ruta local o temporal del archivo subido",
+      "title": "Ruta Archivo"
+    },
+    "document_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "ID del documento si ya está indexado en ChromaDB",
+      "title": "Document Id"
+    },
+    "perfil_destinatario": {
+      "$ref": "#/$defs/PerfilDestinatarioEnum",
+      "default": "Junior"
+    },
+    "formato_salida": {
+      "$ref": "#/$defs/FormatoSalidaEnum",
+      "default": "Flashcards"
+    },
+    "nicho_sector": {
+      "$ref": "#/$defs/NichoSectorEnum",
+      "default": "General"
+    },
+    "nivel_detalle": {
+      "$ref": "#/$defs/NivelDetalleEnum",
+      "default": "Didactico"
+    }
+  },
+  "required": [
+    "documento_titulo"
+  ],
+  "title": "AdaptacionContenidoRequest",
+  "type": "object"
+}

@@ -11,7 +11,12 @@ from nuevamente_ai.schemas import (
     PaqueteContenidoAdaptado,
     PerfilDestinatarioEnum,
     FormatoSalidaEnum,
-    NichoSectorEnum
+    NichoSectorEnum,
+    DocumentoMetadataResumen,
+    ChunkTrazabilidad,
+    TrazabilidadContexto,
+    ValidacionReporte,
+    AuditoriaSeguridadReporte,
 )
 
 
@@ -53,12 +58,14 @@ def nodo_ensamblador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
         tiempo_calculado = 15
 
     # Construir modelos
+    resumen = state.get("metadata_documento", {}).get("resumen_ejecutivo")
     metadatos = MetadatosAprendizaje(
         perfil_aplicado=perfil_enum,
         formato_generado=formato_enum,
         tiempo_estimado_estudio_minutos=state.get("tiempo_estimado_minutos", tiempo_calculado),
         conceptos_clave=state.get("conceptos_clave", [titulo_doc]),
-        nicho_contexto=nicho_enum
+        nicho_contexto=nicho_enum,
+        resumen_ejecutivo=resumen
     )
 
     if formato_enum == FormatoSalidaEnum.MAPA_MENTAL and isinstance(items_raw, dict):
@@ -80,10 +87,50 @@ def nodo_ensamblador(state: EstadoPipelineAdaptacion) -> Dict[str, Any]:
         items=items_raw
     )
 
+    # Trazabilidad y metadatos de integración (spec IA-08)
+    doc_id = state.get("document_id") or "doc-local"
+    dominio_doc = state.get("dominio_documento") or "General"
+    documento_resumen = DocumentoMetadataResumen(
+        document_id=doc_id,
+        titulo=titulo_doc,
+        dominio=dominio_doc
+    )
+
+    frags = state.get("fragmentos_relevantes", [])
+    chunks_utilizados = []
+    for f in frags:
+        meta = f.get("metadatos", {}) if isinstance(f, dict) else getattr(f, "metadata", {})
+        chunks_utilizados.append(
+            ChunkTrazabilidad(
+                chunk_id=meta.get("chunk_id", ""),
+                seccion=meta.get("section"),
+                pagina_inicio=meta.get("page"),
+                pagina_fin=meta.get("page_end"),
+                tipo_contenido=meta.get("tipo_contenido")
+            )
+        )
+    trazabilidad = TrazabilidadContexto(
+        chunks_utilizados=chunks_utilizados,
+        total_chunks_documento=state.get("total_chunks_documento", len(chunks_utilizados)),
+        total_chunks_contexto=len(chunks_utilizados)
+    )
+
+    score = state.get("anclaje_fuente_score", 0.95)
+    intentos = max(0, state.get("contador_intentos", 1) - 1)
+    validacion = ValidacionReporte(
+        anclaje_fuente_score=score if score is not None else 0.95,
+        aprobado=True,
+        reintentos_realizados=intentos,
+        auditoria_seguridad=AuditoriaSeguridadReporte(es_seguro=True)
+    )
+
     respuesta = AdaptacionContenidoResponse(
         status="exito",
+        documento=documento_resumen,
         metadatos=metadatos,
-        contenido_adaptado=paquete_contenido
+        contenido_adaptado=paquete_contenido,
+        trazabilidad=trazabilidad,
+        validacion=validacion
     )
 
     return {

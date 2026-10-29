@@ -4,8 +4,7 @@ Pipeline de **ingestión → chunking → embeddings → vector store → retrie
 
 Transforma documentación técnica (PDF, Markdown, TXT) en fragmentos trazables, semánticamente enriquecidos, listos para RAG y generación de contenido educativo adaptado.
 
-> **Alcance actual:** IA-02 a IA-07 completados: ingestión, chunking, vector store, selección de contexto por cobertura (IA-05), generación en 5 formatos × 3 perfiles (IA-06) y validación de fidelidad (IA-07). La generación usa el AI Core del equipo adaptado en `src/nuevamente_ai/`.  
-> **Pendiente:** IA-05 (selección de contexto por cobertura), IA-06 (uso de la metadata pedagógica), IA-08 (contrato JSON con el backend).
+> **Alcance actual:** IA-02 a IA-08 completados: ingestión, chunking, vector store, selección de contexto por cobertura (IA-05), generación en 5 formatos × 3 perfiles (IA-06), validación de fidelidad (IA-07) y contrato JSON con Backend (IA-08). La generación usa el AI Core del equipo adaptado en `src/nuevamente_ai/`.
 
 ---
 
