@@ -120,6 +120,10 @@ class AlmacenamientoOCI(BaseModel):
     objeto_id: str
     status_upload: str = Field(default="pendiente")
     ruta_publica_o_par: Optional[str] = None
+    documento_original_objeto_id: Optional[str] = None
+    documento_original_subido: Optional[bool] = None
+    codigo_error: Optional[str] = None
+    mensaje: Optional[str] = None
 
 
 class PaqueteContenidoAdaptado(BaseModel):
@@ -287,6 +291,7 @@ class AdaptacionContenidoResponse(BaseModel):
     contenido_adaptado: PaqueteContenidoAdaptado
     trazabilidad: Optional[TrazabilidadContexto] = Field(None, description="Trazabilidad de fragmentos fuente utilizados")
     validacion: Optional[ValidacionReporte] = Field(None, description="Reporte de fidelidad y seguridad")
+    almacenamiento_oci: Optional[AlmacenamientoOCI] = Field(None, description="Persistencia en almacenamiento OCI")
 
 
 # Alias oficiales de contrato IA-08

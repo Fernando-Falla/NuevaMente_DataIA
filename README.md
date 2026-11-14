@@ -274,7 +274,44 @@ El reporte se guardará automáticamente en `.reports/`.
 |IA-02b/c|Límites de tamaño, control de cuota y dominios TI, Fintech, Salud y Marketing digital|Completado|
 |Proveedores|Proveedor de LLM por etapa (Gemini/Groq) y embeddings locales por defecto|Completado|
 |IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
-|IA-08|Integración Backend (JSON contrato)|Pendiente|
+|IA-08|Integración Backend (JSON contrato canónico)|Completado|
+|BE-01|Backend FastAPI unificado en proceso (`POST /api/v1/adaptar-contenido`)|Completado|
+
+---
+
+## Backend FastAPI Unificado (BE-01)
+
+El backend expone la API REST de NuevaMente ejecutando el pipeline Data & IA directamente en memoria/proceso (sin latencias ni microservicios HTTP externos intermedios).
+
+### Iniciar el servidor localmente:
+```bash
+uv run uvicorn backend.main:app --reload --port 8000
+```
+- Documentación interactiva Swagger: `http://localhost:8000/docs`
+- Especificación OpenAPI JSON: `http://localhost:8000/openapi.json`
+- Health check: `GET http://localhost:8000/health`
+
+### Endpoint Principal de Adaptación Pedagógica:
+`POST /api/v1/adaptar-contenido` (multipart/form-data)
+
+**Parámetros:**
+- `documento_original`: Archivo binario (PDF `.pdf`, Markdown `.md`, Texto `.txt`). Límite: 25 MB.
+- `perfil_destinatario`: `Junior` | `Senior` | `Ejecutivo` (default: `Junior`).
+- `formato_salida`: `Flashcards` | `Quiz Interactivo` | `Mapa Mental` | `Guia Paso a Paso` | `Resumen Ejecutivo` (default: `Flashcards`).
+- `nicho_sector`: `TI` | `Fintech` | `Salud` | `Marketing digital` | `General` (default: `General`).
+- `nivel_detalle`: `Didactico` | `Tecnico Intermedio` | `Exhaustivo` (default: `Didactico`).
+- `documento_titulo`: (Opcional) Título del documento; si se omite, se infiere del nombre de archivo.
+
+**Respuestas:**
+- `200 OK`: `AdaptacionResponseDTO` con documento, metadatos, contenido adaptado en el formato solicitado, trazabilidad de chunks y validación de fidelidad/auditoría.
+- `400 Bad Request`: `DOMINIO_NO_SOPORTADO` o `ARCHIVO_INVALIDO`.
+- `413 Payload Too Large`: `ARCHIVO_DEMASIADO_GRANDE` (> 25 MB) o `DOCUMENTO_DEMASIADO_EXTENSO`.
+- `415 Unsupported Media Type`: Extensión no soportada.
+- `422 Unprocessable Entity`: `FORMATO_NO_ADECUADO` (ej. guía paso a paso en texto conceptual), `FIDELIDAD_INSUFICIENTE` o archivo vacío.
+- `503 Service Unavailable`: `ERROR_PROVEEDOR_LLM` (agotamiento temporal de cuotas).
+
+**Persistencia OCI (Opcional):**
+Si `OCI_STORAGE_ENABLED=true` en `.env`, el backend persiste el archivo original en `documentos-fuente/{periodo}/{sha256}-{nombre}` y el artefacto JSON adaptado en `artefactos-generados/{periodo}/{sha256}-{artifact_sha256}.json`, retornando los identificadores en el campo `almacenamiento_oci`.
 
 Detalle de avance y tareas: `brain/implementation_plan.md`, `brain/task.md`.
 
