@@ -80,8 +80,8 @@
   - [x] Recursos didácticos (analogías, `pista_didactica`) admitidos si no introducen datos falsos; distractores de quiz excluidos.
   - [x] Lógica de reintentos controlados con retroalimentación por ítem (máximo 2 intentos).
   - [x] Validación con Gemini real: `.reports/ia07-validacion-fidelidad-2026-10-22.md`.
-- [ ] **Fase 8: Integración Backend (IA-08)**
-  - [ ] Exportación de JSON estricto y compatible.
+- [x] **Fase 8: Integración Backend (IA-08)**
+  - [x] Exportación de JSON estricto y compatible (spec `ia08_contrato_backend.md`, schemas generados en `specs/nueva_mente/schemas/`).
 
 - [x] **Fase de Pruebas Unitarias/Integración (Local)**
   - [x] Crear entorno de prueba `scripts/test_pipeline_local.py`.

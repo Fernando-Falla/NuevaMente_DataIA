@@ -14,10 +14,10 @@ Este plan refleja estrictamente la "Constitución" del proyecto y el flujo detal
 - **IA-02 - Ingestión**: COMPLETADO (Reapertura). Extracción (PyMuPDF), validación técnica heurística, normalización y asignación de `document_id`. Se añadió extracción de metadata pedagógica a nivel documento con caché local (`gemini-2.5-flash`).
 - **IA-03 - Chunking**: COMPLETADO (Reapertura). Implementación con RecursiveCharacterTextSplitter jerárquico (800 max / 150 overlap) preservando rígidamente `document_id`, `chunk_id`. Se agregó consciencia estructural (protección de código y tablas, asociación de encabezados) y metadata pedagógica a nivel chunk con LLM.
 - **IA-04 - Embeddings**: COMPLETADO (Reapertura Parcial). Implementación con modelo `models/gemini-embedding-001` y persistencia en ChromaDB local. Pendiente la validación de recuperación con consultas representativas para medir Recall/Precision.
-- **IA-05 - Retriever/RAG**: PENDIENTE. Búsqueda semántica (similarity >= 0.75, top_k configurable) con trazabilidad absoluta.
-- **IA-06 - LLM + Adaptación**: PENDIENTE. Generación guiada por prompts con perfiles y formatos.
-- **IA-07 - Validación IA**: PENDIENTE. Evaluación de fidelidad (`anclaje_fuente_score`), estructura y perfil antes de emitir resultado.
-- **IA-08 - Integración (JSON)**: PENDIENTE. Estructuración estricta del contrato de salida hacia Backend.
+- **IA-05 - Retriever/RAG**: COMPLETADO. Selección de contexto por cobertura de secciones y tipos de contenido, respetando presupuesto de tokens y desempate por similitud semántica.
+- **IA-06 - LLM + Adaptación**: COMPLETADO. Generación de los 5 formatos educativos (Flashcards, Quiz Interactivo, Mapa Mental, Guía Paso a Paso, Resumen Ejecutivo) calibrados para 3 perfiles (Junior, Senior, Ejecutivo).
+- **IA-07 - Validación IA**: COMPLETADO. Evaluación de fidelidad ítem por ítem con Agente Crítico, cálculo de `anclaje_fuente_score` determinista y ciclo de reintentos estructurados.
+- **IA-08 - Integración (JSON)**: COMPLETADO. DTOs de Request y Response tipados en Pydantic v2, serialización limpia UTF-8, reporte de trazabilidad/auditoría y exportación de JSON Schemas canónicos en `specs/nueva_mente/schemas/`.
 
 ## Decisiones Técnicas Aprobadas
 > [!NOTE]
