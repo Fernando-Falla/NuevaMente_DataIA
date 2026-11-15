@@ -276,6 +276,7 @@ El reporte se guardará automáticamente en `.reports/`.
 |IA-07|Validación de fidelidad (juez por ítem, ver `.reports/ia07-validacion-fidelidad-2026-10-22.md`)|Completado|
 |IA-08|Integración Backend (JSON contrato canónico)|Completado|
 |BE-01|Backend FastAPI unificado en proceso (`POST /api/v1/adaptar-contenido`)|Completado|
+|BE-02|Streaming SSE de telemetría y progreso (`POST /api/v1/adaptar-contenido/stream`)|Completado|
 
 ---
 
@@ -312,6 +313,29 @@ uv run uvicorn backend.main:app --reload --port 8000
 
 **Persistencia OCI (Opcional):**
 Si `OCI_STORAGE_ENABLED=true` en `.env`, el backend persiste el archivo original en `documentos-fuente/{periodo}/{sha256}-{nombre}` y el artefacto JSON adaptado en `artefactos-generados/{periodo}/{sha256}-{artifact_sha256}.json`, retornando los identificadores en el campo `almacenamiento_oci`.
+
+### Endpoint de Streaming con Telemetría SSE (BE-02):
+`POST /api/v1/adaptar-contenido/stream` (multipart/form-data)
+
+Permite al frontend recibir actualizaciones en tiempo real sobre el estado del pipeline mientras se procesa el documento, mitigando la percepción de latencia y evitando timeouts de red en documentos extensos.
+
+**Mismos parámetros que `/adaptar-contenido`:**
+- `documento_original`, `perfil_destinatario`, `formato_salida`, `nicho_sector`, `nivel_detalle`, `documento_titulo`.
+
+**Cabecera de respuesta:**
+`Content-Type: text/event-stream; charset=utf-8`
+
+**Eventos SSE Emitidos:**
+1. `event: telemetria`: Emite `TelemetriaEstadoResponse` con las 5 etapas:
+   - `EXTRACCION` (fase 1, 20%): Extracción y normalización con PyMuPDF.
+   - `INDEXACION` (fase 2, 40%): Segmentación jerárquica estructural y embeddings.
+   - `GENERACION` (fase 3, 60%): LangGraph adaptando al perfil y formato.
+   - `AUDITORIA` (fase 4, 80%): Agente Crítico evaluando fidelidad por ítem y auditoría Hermes.
+   - `PERSISTENCIA` (fase 5, 95%): Guardado dual en OCI Object Storage (si está habilitado).
+   - `COMPLETADO` (fase 5, 100%): Finalización del procesamiento.
+2. `event: resultado`: Emite el paquete canónico final `AdaptacionResponseDTO` en caso de éxito.
+3. `event: error`: Emite `AdaptacionErrorResponseDTO` en caso de rechazo del pipeline (dominio no soportado, formato inadecuado, error interno, etc.).
+4. `event: fin`: Emite `{"status": "finalizado", "tiempo_total_segundos": ...}` señalando el cierre del flujo.
 
 Detalle de avance y tareas: `brain/implementation_plan.md`, `brain/task.md`.
 

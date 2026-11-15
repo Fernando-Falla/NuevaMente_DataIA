@@ -83,6 +83,11 @@
 - [x] **Fase 8: Integración Backend (IA-08)**
   - [x] Exportación de JSON estricto y compatible (spec `ia08_contrato_backend.md`, schemas generados en `specs/nueva_mente/schemas/`).
 
+- [x] **Fase de Backend Unificado (BE-01 & BE-02)**
+  - [x] **BE-01:** Servidor FastAPI en proceso/memoria (`POST /api/v1/adaptar-contenido`), validación multipart, DTOs Pydantic v2 y persistencia OCI resiliente.
+  - [x] **BE-02:** Telemetría y streaming SSE en tiempo real (`POST /api/v1/adaptar-contenido/stream`) con eventos de 5 etapas (`telemetria`), artefacto final (`resultado`), errores controlados (`error`) y evento de cierre (`fin`).
+  - [x] Pruebas automatizadas de backend y streaming (22 tests en `tests/test_backend_api.py`).
+
 - [x] **Fase de Pruebas Unitarias/Integración (Local)**
   - [x] Crear entorno de prueba `scripts/test_pipeline_local.py`.
   - [x] Simular Backend y verificar trazabilidad de IA-02 a IA-04.

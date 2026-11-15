@@ -18,6 +18,8 @@ Este plan refleja estrictamente la "Constitución" del proyecto y el flujo detal
 - **IA-06 - LLM + Adaptación**: COMPLETADO. Generación de los 5 formatos educativos (Flashcards, Quiz Interactivo, Mapa Mental, Guía Paso a Paso, Resumen Ejecutivo) calibrados para 3 perfiles (Junior, Senior, Ejecutivo).
 - **IA-07 - Validación IA**: COMPLETADO. Evaluación de fidelidad ítem por ítem con Agente Crítico, cálculo de `anclaje_fuente_score` determinista y ciclo de reintentos estructurados.
 - **IA-08 - Integración (JSON)**: COMPLETADO. DTOs de Request y Response tipados en Pydantic v2, serialización limpia UTF-8, reporte de trazabilidad/auditoría y exportación de JSON Schemas canónicos en `specs/nueva_mente/schemas/`.
+- **BE-01 - Servidor Backend Unificado**: COMPLETADO. FastAPI en memoria/proceso (`POST /api/v1/adaptar-contenido`), validación multipart, DTOs Pydantic v2 y persistencia dual en OCI Object Storage con fallback resiliente.
+- **BE-02 - Telemetría y Streaming SSE**: COMPLETADO. Endpoint `POST /api/v1/adaptar-contenido/stream` para streaming en tiempo real con eventos de progreso (`telemetria`) en las 5 etapas, artefacto final (`resultado`), control de errores tipados (`error`) y evento de cierre (`fin`).
 
 ## Decisiones Técnicas Aprobadas
 > [!NOTE]

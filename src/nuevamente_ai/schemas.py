@@ -301,7 +301,7 @@ AdaptacionResponseDTO = AdaptacionContenidoResponse
 
 class TelemetriaEstadoResponse(BaseModel):
     fase_actual: FaseProgresoEnum
-    fase_numero: int = Field(..., ge=1, le=5)
+    fase_numero: int = Field(..., ge=1, le=10)
     porcentaje_progreso: int = Field(..., ge=0, le=100)
     mensaje_descriptivo: str
     tiempo_transcurrido_segundos: float = Field(default=0.0)

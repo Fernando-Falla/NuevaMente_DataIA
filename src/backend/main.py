@@ -11,20 +11,25 @@ from typing import Annotated, Optional
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from backend.config import settings
-from backend.services.adaptacion_service import procesar_adaptacion_directa
+from backend.services.adaptacion_service import (
+    procesar_adaptacion_directa,
+    procesar_adaptacion_stream,
+)
 from backend.services.oci_service import OCIStorage, get_oci_storage
 from nuevamente_ai.pipeline import ErrorPipelineIA
 from nuevamente_ai.schemas import (
     AdaptacionErrorResponseDTO,
     AdaptacionResponseDTO,
     CodigoErrorEnum,
+    FaseProgresoEnum,
     FormatoSalidaEnum,
     NichoSectorEnum,
     NivelDetalleEnum,
     PerfilDestinatarioEnum,
+    TelemetriaEstadoResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,6 +121,51 @@ async def generic_exception_handler(_request, exc: Exception):
     return JSONResponse(status_code=500, content=error_dto.model_dump(mode="json"))
 
 
+def _validar_archivo_upload(documento_original: UploadFile) -> tuple[str, bytes, Optional[JSONResponse]]:
+    """Valida extensión y tamaño del archivo cargado antes de procesarlo."""
+    filename = (documento_original.filename or "").replace("\\", "/").rsplit("/", 1)[-1]
+    extension = Path(filename).suffix.lower()
+
+    if extension not in settings.ALLOWED_EXTENSIONS:
+        error_dto = AdaptacionErrorResponseDTO(
+            status="error",
+            codigo_error=CodigoErrorEnum.ARCHIVO_INVALIDO,
+            http_status=415,
+            mensaje=f"Formato de archivo '{extension}' no soportado. Debe ser PDF, Markdown (.md) o TXT (.txt).",
+            sugerencia="Utiliza un archivo con extensión .pdf, .md o .txt.",
+        )
+        return filename, b"", JSONResponse(status_code=415, content=error_dto.model_dump(mode="json"))
+
+    documento_original.file.seek(0, os.SEEK_END)
+    size = documento_original.file.tell()
+    documento_original.file.seek(0)
+
+    if size == 0:
+        error_dto = AdaptacionErrorResponseDTO(
+            status="error",
+            codigo_error=CodigoErrorEnum.ARCHIVO_INVALIDO,
+            http_status=422,
+            mensaje="El documento proporcionado está vacío (0 bytes).",
+            sugerencia="Proporciona un documento con contenido técnico legible.",
+        )
+        return filename, b"", JSONResponse(status_code=422, content=error_dto.model_dump(mode="json"))
+
+    if size > settings.MAX_DOCUMENT_BYTES:
+        max_mb = settings.MAX_DOCUMENT_BYTES // (1024 * 1024)
+        error_dto = AdaptacionErrorResponseDTO(
+            status="error",
+            codigo_error=CodigoErrorEnum.ARCHIVO_DEMASIADO_GRANDE,
+            http_status=413,
+            mensaje=f"El documento supera el límite permitido de {max_mb} MB.",
+            detalle={"tamano_recibido_bytes": size, "max_permitido_bytes": settings.MAX_DOCUMENT_BYTES},
+            sugerencia="Reduce el tamaño del documento o divide el archivo en secciones más breves.",
+        )
+        return filename, b"", JSONResponse(status_code=413, content=error_dto.model_dump(mode="json"))
+
+    content = documento_original.file.read()
+    return filename, content, None
+
+
 @app.post(
     f"{settings.API_V1_STR}/adaptar-contenido",
     response_model=AdaptacionResponseDTO,
@@ -170,51 +220,11 @@ def adaptar_contenido(
     Endpoint principal para adaptación de contenidos educativos.
     Valida transporte, persiste temporalmente y ejecuta el pipeline Data & IA en memoria.
     """
-    # 1. Validación de extensión permitida
-    filename = (documento_original.filename or "").replace("\\", "/").rsplit("/", 1)[-1]
-    extension = Path(filename).suffix.lower()
+    filename, content, error_resp = _validar_archivo_upload(documento_original)
+    if error_resp is not None:
+        return error_resp
 
-    if extension not in settings.ALLOWED_EXTENSIONS:
-        error_dto = AdaptacionErrorResponseDTO(
-            status="error",
-            codigo_error=CodigoErrorEnum.ARCHIVO_INVALIDO,
-            http_status=415,
-            mensaje=f"Formato de archivo '{extension}' no soportado. Debe ser PDF, Markdown (.md) o TXT (.txt).",
-            sugerencia="Utiliza un archivo con extensión .pdf, .md o .txt.",
-        )
-        return JSONResponse(status_code=415, content=error_dto.model_dump(mode="json"))
-
-    # 2. Validación de tamaño de archivo
-    documento_original.file.seek(0, os.SEEK_END)
-    size = documento_original.file.tell()
-    documento_original.file.seek(0)
-
-    if size == 0:
-        error_dto = AdaptacionErrorResponseDTO(
-            status="error",
-            codigo_error=CodigoErrorEnum.ARCHIVO_INVALIDO,
-            http_status=422,
-            mensaje="El documento proporcionado está vacío (0 bytes).",
-            sugerencia="Proporciona un documento con contenido técnico legible.",
-        )
-        return JSONResponse(status_code=422, content=error_dto.model_dump(mode="json"))
-
-    if size > settings.MAX_DOCUMENT_BYTES:
-        max_mb = settings.MAX_DOCUMENT_BYTES // (1024 * 1024)
-        error_dto = AdaptacionErrorResponseDTO(
-            status="error",
-            codigo_error=CodigoErrorEnum.ARCHIVO_DEMASIADO_GRANDE,
-            http_status=413,
-            mensaje=f"El documento supera el límite permitido de {max_mb} MB.",
-            detalle={"tamano_recibido_bytes": size, "max_permitido_bytes": settings.MAX_DOCUMENT_BYTES},
-            sugerencia="Reduce el tamaño del documento o divide el archivo en secciones más breves.",
-        )
-        return JSONResponse(status_code=413, content=error_dto.model_dump(mode="json"))
-
-    # 3. Lectura de contenido
-    content = documento_original.file.read()
-
-    # 4. Procesamiento directo en proceso/memoria
+    # Procesamiento directo en proceso/memoria
     resultado = procesar_adaptacion_directa(
         file_bytes=content,
         filename=filename,
@@ -225,12 +235,95 @@ def adaptar_contenido(
         documento_titulo=documento_titulo,
     )
 
-    # 5. Manejo de respuesta según contrato canónico IA-08
+    # Manejo de respuesta según contrato canónico IA-08
     if isinstance(resultado, AdaptacionErrorResponseDTO):
         return JSONResponse(status_code=resultado.http_status, content=resultado.model_dump(mode="json"))
 
-    # 6. Almacenamiento opcional en OCI Object Storage
+    # Almacenamiento opcional en OCI Object Storage
     if oci_storage is not None:
         resultado = oci_storage.guardar(content, filename, resultado)
 
     return resultado
+
+
+@app.post(
+    f"{settings.API_V1_STR}/adaptar-contenido/stream",
+    response_class=StreamingResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Adaptar contenido educativo con streaming SSE de telemetría (BE-02)",
+    description="Recibe documento (PDF, MD, TXT) y parámetros pedagógicos, ejecutando el pipeline mientras emite eventos Server-Sent Events (SSE) con el progreso en tiempo real de las 5 etapas, seguido del resultado final o error.",
+    responses={
+        200: {
+            "content": {"text/event-stream": {}},
+            "description": "Flujo continuo de eventos SSE ('telemetria', 'resultado', 'error', 'fin').",
+        },
+        400: {"model": AdaptacionErrorResponseDTO, "description": "Dominio no soportado o archivo inválido"},
+        413: {"model": AdaptacionErrorResponseDTO, "description": "Archivo o documento demasiado grande"},
+        415: {"model": AdaptacionErrorResponseDTO, "description": "Formato de archivo no soportado"},
+        422: {"model": AdaptacionErrorResponseDTO, "description": "Formato pedagógico no adecuado o documento vacío"},
+        500: {"model": AdaptacionErrorResponseDTO, "description": "Error interno del servidor"},
+        503: {"model": AdaptacionErrorResponseDTO, "description": "Proveedor de IA no disponible"},
+    },
+    tags=["Adaptación Pedagógica"],
+)
+def adaptar_contenido_stream(
+    documento_original: Annotated[
+        UploadFile,
+        File(
+            description="Documento original PDF (.pdf), Markdown (.md) o Texto (.txt).",
+            json_schema_extra={"format": "binary"},
+        ),
+    ],
+    perfil_destinatario: Annotated[
+        PerfilDestinatarioEnum,
+        Form(description="Perfil de destinatario: Junior, Senior, Ejecutivo."),
+    ] = PerfilDestinatarioEnum.JUNIOR,
+    formato_salida: Annotated[
+        FormatoSalidaEnum,
+        Form(description="Formato educativo: Flashcards, Quiz Interactivo, Mapa Mental, Guia Paso a Paso, Resumen Ejecutivo."),
+    ] = FormatoSalidaEnum.FLASHCARDS,
+    nicho_sector: Annotated[
+        NichoSectorEnum,
+        Form(description="Nicho o sector: TI, Fintech, Salud, Marketing digital, General."),
+    ] = NichoSectorEnum.GENERAL,
+    nivel_detalle: Annotated[
+        NivelDetalleEnum,
+        Form(description="Nivel de profundidad didáctica: Didactico, Tecnico Intermedio, Exhaustivo."),
+    ] = NivelDetalleEnum.DIDACTICO,
+    documento_titulo: Annotated[
+        Optional[str],
+        Form(description="Título personalizado del documento (opcional)."),
+    ] = None,
+    oci_storage: Annotated[
+        Optional[OCIStorage],
+        Depends(get_oci_storage),
+    ] = None,
+):
+    """
+    Endpoint de streaming SSE para adaptación de contenidos educativos (BE-02).
+    Emite eventos de telemetría de las 5 etapas en tiempo real hacia el cliente frontend.
+    """
+    filename, content, error_resp = _validar_archivo_upload(documento_original)
+    if error_resp is not None:
+        return error_resp
+
+    stream_generator = procesar_adaptacion_stream(
+        file_bytes=content,
+        filename=filename,
+        perfil=perfil_destinatario,
+        formato=formato_salida,
+        nicho=nicho_sector,
+        nivel_detalle=nivel_detalle,
+        documento_titulo=documento_titulo,
+        oci_storage=oci_storage,
+    )
+
+    return StreamingResponse(
+        stream_generator,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

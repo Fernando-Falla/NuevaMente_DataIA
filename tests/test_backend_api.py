@@ -382,3 +382,217 @@ def test_procesar_adaptacion_directa_gestiona_archivo_temporal():
         assert archivo_recibido_en_pipeline is not None
         assert not os.path.exists(archivo_recibido_en_pipeline)
 
+
+# --- 7. Pruebas de Streaming SSE y Telemetría (Tarea BE-02) ---
+
+def parse_sse_events(raw_text: str) -> list[dict]:
+    """Helper para parsear bloques de Server-Sent Events (SSE)."""
+    events = []
+    import json
+    blocks = raw_text.strip().split("\n\n")
+    for block in blocks:
+        if not block.strip():
+            continue
+        event_name = None
+        data_lines = []
+        for line in block.split("\n"):
+            if line.startswith("event:"):
+                event_name = line.split(":", 1)[1].strip()
+            elif line.startswith("data:"):
+                data_lines.append(line.split(":", 1)[1].strip())
+        if event_name and data_lines:
+            events.append({
+                "event": event_name,
+                "data": json.loads("\n".join(data_lines))
+            })
+    return events
+
+
+def test_adaptar_contenido_stream_transporte_invalido(client):
+    """Verifica rechazos HTTP inmediatos antes de iniciar el stream."""
+    # 1. Extensión no soportada
+    files = {"documento_original": ("archivo.exe", b"fake binary", "application/octet-stream")}
+    res = client.post("/api/v1/adaptar-contenido/stream", files=files, data={"perfil_destinatario": "Junior"})
+    assert res.status_code == 415
+
+    # 2. Archivo vacío
+    files = {"documento_original": ("archivo.pdf", b"", "application/pdf")}
+    res = client.post("/api/v1/adaptar-contenido/stream", files=files, data={"perfil_destinatario": "Junior"})
+    assert res.status_code == 422
+
+    # 3. Archivo demasiado grande
+    with patch("backend.main.settings.MAX_DOCUMENT_BYTES", 50):
+        files = {"documento_original": ("archivo.txt", b"A" * 100, "text/plain")}
+        res = client.post("/api/v1/adaptar-contenido/stream", files=files, data={"perfil_destinatario": "Junior"})
+        assert res.status_code == 413
+
+
+def test_adaptar_contenido_stream_exito_completo(client):
+    """Verifica streaming SSE exitoso con emisión de las 5 etapas de telemetría y resultado final."""
+    def fake_pipeline_stream(**kwargs):
+        callback = kwargs.get("callback_telemetria")
+        assert callback is not None
+
+        # Simular notificación secuencial de las etapas
+        callback("EXTRACCION", 1, 20, "Extrayendo y normalizando texto...")
+        callback("INDEXACION", 2, 40, "Calculando embeddings y chunks...")
+        callback("GENERACION", 3, 60, "LangGraph generando para Junior...")
+        callback("AUDITORIA", 4, 80, "Crítico evaluando fidelidad...")
+        callback("COMPLETADO", 5, 100, "Contenido adaptado y seguro.")
+
+        return make_dummy_response("Flashcards")
+
+    with patch(
+        "backend.services.adaptacion_service.ejecutar_pipeline_adaptacion_controlado",
+        side_effect=fake_pipeline_stream
+    ):
+        files = {"documento_original": ("microservicios.md", b"# Microservicios\nContenido tecnico", "text/markdown")}
+        data = {
+            "perfil_destinatario": "Junior",
+            "formato_salida": "Flashcards",
+            "nicho_sector": "TI",
+            "documento_titulo": "Microservicios 101"
+        }
+        response = client.post("/api/v1/adaptar-contenido/stream", files=files, data=data)
+
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+
+        eventos = parse_sse_events(response.text)
+        assert len(eventos) >= 7  # 5 telemetrías + 1 resultado + 1 fin
+
+        # Verificar eventos de telemetría
+        telems = [e for e in eventos if e["event"] == "telemetria"]
+        assert len(telems) == 5
+        assert telems[0]["data"]["fase_actual"] == "EXTRACCION"
+        assert telems[0]["data"]["fase_numero"] == 1
+        assert telems[0]["data"]["porcentaje_progreso"] == 20
+
+        assert telems[4]["data"]["fase_actual"] == "COMPLETADO"
+        assert telems[4]["data"]["fase_numero"] == 5
+        assert telems[4]["data"]["porcentaje_progreso"] == 100
+
+        # Verificar evento resultado
+        res_events = [e for e in eventos if e["event"] == "resultado"]
+        assert len(res_events) == 1
+        assert res_events[0]["data"]["status"] == "exito"
+        assert "documento" in res_events[0]["data"]
+        assert "contenido_adaptado" in res_events[0]["data"]
+
+        # Verificar evento fin
+        fin_events = [e for e in eventos if e["event"] == "fin"]
+        assert len(fin_events) == 1
+        assert fin_events[0]["data"]["status"] == "finalizado"
+
+
+def test_adaptar_contenido_stream_con_persistencia_oci(client):
+    """Verifica emisión de telemetría de PERSISTENCIA y guardado en OCI en streaming."""
+    mock_oci = MagicMock(spec=OCIStorage)
+
+    def fake_guardar(doc_bytes, filename, resultado):
+        resultado.almacenamiento_oci = AlmacenamientoOCI(
+            bucket="nuevamente-test",
+            objeto_id="artefactos/test.json",
+            status_upload="subido",
+        )
+        return resultado
+
+    mock_oci.guardar.side_effect = fake_guardar
+    app.dependency_overrides[get_oci_storage] = lambda: mock_oci
+
+    def fake_pipeline_stream(**kwargs):
+        callback = kwargs.get("callback_telemetria")
+        callback("EXTRACCION", 1, 20, "Extrayendo...")
+        callback("COMPLETADO", 5, 100, "Completado.")
+        return make_dummy_response("Flashcards")
+
+    with patch(
+        "backend.services.adaptacion_service.ejecutar_pipeline_adaptacion_controlado",
+        side_effect=fake_pipeline_stream
+    ):
+        files = {"documento_original": ("doc.txt", b"Texto de prueba", "text/plain")}
+        data = {"perfil_destinatario": "Junior", "formato_salida": "Flashcards"}
+        response = client.post("/api/v1/adaptar-contenido/stream", files=files, data=data)
+
+        assert response.status_code == 200
+        eventos = parse_sse_events(response.text)
+
+        # Debe incluir telemetria de PERSISTENCIA
+        telems = [e for e in eventos if e["event"] == "telemetria"]
+        fases = [t["data"]["fase_actual"] for t in telems]
+        assert "PERSISTENCIA" in fases
+
+        # Resultado con info OCI
+        res_events = [e for e in eventos if e["event"] == "resultado"]
+        assert res_events[0]["data"]["almacenamiento_oci"]["status_upload"] == "subido"
+        mock_oci.guardar.assert_called_once()
+
+
+def test_adaptar_contenido_stream_rechazo_pipeline_controlado(client):
+    """Verifica que un error de negocio del pipeline se emita como evento 'error' y termine con 'fin'."""
+    error_dto = AdaptacionErrorResponseDTO(
+        status="error",
+        codigo_error=CodigoErrorEnum.DOMINIO_NO_SOPORTADO,
+        http_status=400,
+        mensaje="Documento no técnico.",
+        sugerencia="Envía un documento de TI, Fintech, Salud o Marketing digital.",
+    )
+
+    def fake_pipeline_rechazo(**kwargs):
+        callback = kwargs.get("callback_telemetria")
+        callback("EXTRACCION", 1, 20, "Extrayendo texto...")
+        return error_dto
+
+    with patch(
+        "backend.services.adaptacion_service.ejecutar_pipeline_adaptacion_controlado",
+        side_effect=fake_pipeline_rechazo
+    ):
+        files = {"documento_original": ("receta.txt", b"Receta de cocina...", "text/plain")}
+        data = {"perfil_destinatario": "Junior", "formato_salida": "Flashcards"}
+        response = client.post("/api/v1/adaptar-contenido/stream", files=files, data=data)
+
+        assert response.status_code == 200
+        assert "text/event-stream" in response.headers["content-type"]
+
+        eventos = parse_sse_events(response.text)
+        # Debe haber recibido telemetria inicial
+        telems = [e for e in eventos if e["event"] == "telemetria"]
+        assert len(telems) == 1
+
+        # Debe haber recibido evento 'error'
+        errores = [e for e in eventos if e["event"] == "error"]
+        assert len(errores) == 1
+        assert errores[0]["data"]["codigo_error"] == "DOMINIO_NO_SOPORTADO"
+        assert errores[0]["data"]["http_status"] == 400
+
+        # Debe haber recibido evento 'fin'
+        fins = [e for e in eventos if e["event"] == "fin"]
+        assert len(fins) == 1
+
+
+def test_adaptar_contenido_stream_excepcion_imprevista(client):
+    """Verifica que una excepción no controlada dentro del worker se capture y emita como error 500."""
+    def fake_pipeline_crash(**kwargs):
+        raise RuntimeError("Fallo catastrófico imprevisto en LLM")
+
+    with patch(
+        "backend.services.adaptacion_service.ejecutar_pipeline_adaptacion_controlado",
+        side_effect=fake_pipeline_crash
+    ):
+        files = {"documento_original": ("doc.txt", b"Contenido", "text/plain")}
+        data = {"perfil_destinatario": "Junior", "formato_salida": "Flashcards"}
+        response = client.post("/api/v1/adaptar-contenido/stream", files=files, data=data)
+
+        assert response.status_code == 200
+        eventos = parse_sse_events(response.text)
+
+        errores = [e for e in eventos if e["event"] == "error"]
+        assert len(errores) == 1
+        assert errores[0]["data"]["codigo_error"] == "ERROR_INTERNO"
+        assert errores[0]["data"]["http_status"] == 500
+        assert "Fallo catastrófico" in errores[0]["data"]["mensaje"]
+
+        fins = [e for e in eventos if e["event"] == "fin"]
+        assert len(fins) == 1
+
+
