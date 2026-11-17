@@ -1,7 +1,7 @@
 [project]
 name = "nuevamente-dataia-pipe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Pipeline Data & IA de NuevaMente: ingestión, chunking, embeddings, generación y validación de fidelidad"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
