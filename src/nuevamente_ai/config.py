@@ -30,7 +30,7 @@ def obtener_llm_adaptacion(temperatura: float = 0.3, provider_override: Optional
         if not api_key:
             raise ValueError("GROQ_API_KEY no encontrada en el entorno.")
         from langchain_groq import ChatGroq
-        model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        model_name = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
         return ChatGroq(
             model=model_name,
             api_key=api_key,
@@ -52,7 +52,7 @@ def obtener_llm_adaptacion(temperatura: float = 0.3, provider_override: Optional
         try:
             from langchain_groq import ChatGroq
             groq_llm = ChatGroq(
-                model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
                 api_key=groq_api_key,
                 temperature=temperatura,
                 max_retries=provider_limits()[1],
