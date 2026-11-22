@@ -2,7 +2,7 @@
 
 Pipeline de **ingestión → chunking → embeddings → vector store → generación → validación de fidelidad** que convierte documentación técnica (PDF, Markdown, TXT) en material educativo adaptado al perfil del lector: flashcards, quiz, resumen ejecutivo, mapa mental o guía paso a paso.
 
-> **Contexto:** nació en el **Hackathon ONE G10** (Alura Latam / Oracle Next Education, equipo G10-LATAM-EQUIPO15, oct 2026). El equipo se quedó en el alcance mínimo del reto; yo cloné su estructura inicial en este repositorio personal y desarrollé el pipeline completo.
+> **Contexto:** nació en el **Hackathon ONE G10** (Alura Latam / Oracle Next Education, equipo G10-LATAM-EQUIPO15, sep – nov 2026). Para aprender y practicar, decidí desarrollarlo completo en este repositorio personal: cloné la estructura inicial del AI Core del equipo y, sobre ella, extendí el pipeline hasta la generación, la validación de fidelidad y la API.
 
 ## Mi rol
 
