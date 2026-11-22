@@ -54,7 +54,7 @@ Documento (PDF / MD / TXT)
 
 Reportes completos en `.reports/`.
 
-**Retrieval (IA-04, 29-sep-2026):** 5 consultas sobre documentos de TI, `top_k=4`. Recall@4 = 1,00 en las 5. Precision@4 = 1,00 en 4 y 0,25 en una. Es un set pequeño: sirvió para validar la etapa, no como benchmark.
+**Retrieval (IA-04, 29-sep-2026):** 5 consultas sobre documentos de TI, `top_k=4`. Recall@4 = 1,00 en las 5. Precision@4 = 1,00 en 4 y 0,25 en una. Es un set pequeño: sirvió para validar la etapa, no como benchmark. La relevancia de cada fragmento la juzgó un LLM (Gemini). Recall@4 aquí es un proxy: vale 1 si hay al menos un fragmento relevante entre los 4 primeros (equivale a Hit@4).
 
 **Embeddings (22-oct-2026):** 9 documentos (TI, Salud, Fintech y Marketing digital), 27 consultas, `top_k=4`, relevancia juzgada por pooling con Gemini.
 
