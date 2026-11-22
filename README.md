@@ -1,13 +1,15 @@
 # NuevaMente — Data & IA Pipeline
 
+[![tests](https://github.com/Fernando-Falla/NuevaMente_DataIA/actions/workflows/tests.yml/badge.svg)](https://github.com/Fernando-Falla/NuevaMente_DataIA/actions/workflows/tests.yml)
+
 Pipeline de **ingestión → chunking → embeddings → vector store → generación → validación de fidelidad** que convierte documentación técnica (PDF, Markdown, TXT) en material educativo adaptado al perfil del lector: flashcards, quiz, resumen ejecutivo, mapa mental o guía paso a paso.
 
 > **El caso en 30 segundos**
 > - **Problema:** convertir documentación técnica en material de estudio adaptado al lector, sin perder la trazabilidad ni inventar contenido.
 > - **Decisión:** chunking estructural que protege código y tablas, metadata pedagógica por documento y por fragmento, embeddings elegidos con métricas y un juez de fidelidad por ítem.
-> - **Resultado medido:** en una comparación de 9 documentos y 27 consultas, los embeddings locales lograron el mismo Hit@4 que Gemini (0,96) y sin esperas de cuota. El juez original daba 0,5 o 1,0 al contenido fiel con analogías según la corrida; el juez por ítem da 1,0 en ambas y mantiene 0,0 con datos inventados. 73 pruebas automáticas sin red.
+> - **Resultado medido:** en una comparación de 9 documentos y 27 consultas, los embeddings locales lograron el mismo Hit@4 que Gemini (0,96) y sin esperas de cuota. El juez original daba 0,5 o 1,0 al contenido fiel con analogías según la corrida; el juez por ítem da 1,0 en ambas y mantiene 0,0 con datos inventados. 115 pruebas automáticas sin red, en CI con GitHub Actions.
 >
-> **In English:** Pipeline that turns technical documents (PDF, Markdown, TXT) into learning material adapted to the reader: flashcards, quizzes, summaries, mind maps and step-by-step guides. Structure-aware chunking keeps code and tables intact. Local embeddings were chosen after a 27-query comparison (same Hit@4 as Gemini, 0.96, with no quota waits). A per-item faithfulness judge (LLM-as-a-judge) flags made-up content. FastAPI backend with SSE streaming and 73 offline tests. Built for the ONE G10 hackathon, extending the team's AI Core.
+> **In English:** Pipeline that turns technical documents (PDF, Markdown, TXT) into learning material adapted to the reader: flashcards, quizzes, summaries, mind maps and step-by-step guides. Structure-aware chunking keeps code and tables intact. Local embeddings were chosen after a 27-query comparison (same Hit@4 as Gemini, 0.96, with no quota waits). A per-item faithfulness judge (LLM-as-a-judge) flags made-up content. FastAPI backend with SSE streaming and 115 offline tests running in GitHub Actions. Built for the ONE G10 hackathon, extending the team's AI Core.
 
 > **Contexto:** nació en el **Hackathon ONE G10** (Alura Latam / Oracle Next Education, equipo G10-LATAM-EQUIPO15, sep – nov 2026). Para aprender y practicar, decidí desarrollarlo completo en este repositorio personal: cloné la estructura inicial del AI Core del equipo y, sobre ella, extendí el pipeline hasta la generación, la validación de fidelidad y la API.
 
@@ -81,7 +83,7 @@ Limitación observada: la búsqueda entre idiomas (pregunta en español sobre un
 | Con datos inventados | 0,0 / 0,0 | 0,0 / 0,0 | < 0,75 |
 | Fiel, con analogías | 0,5 / 1,0 | 1,0 / 1,0 | ≥ 0,85 |
 
-**Pruebas automáticas:** 73 pasan sin red (`uv run pytest`, 22-oct-2026).
+**Pruebas automáticas:** 115 pasan sin red (`uv run pytest`) y corren en CI con GitHub Actions en cada push a `main` (22-nov-2026; eran 73 el 22-oct-2026).
 
 ---
 
