@@ -10,6 +10,7 @@
 - Con la cuenta gratuita, los embeddings de Gemini fueron el origen de los errores 429 (30.000 tokens por minuto). Un documento de 81k tokens tardaba unos 4 minutos, con 12 esperas por cuota.
 - La comparación con 9 documentos y 27 consultas (`.reports/embeddings-comparacion-2026-10-22.md`) dio a `paraphrase-multilingual-mpnet-base-v2` (fastembed, CPU) el mismo Hit@4 que Gemini (0,96), con Precision@4 0,58 frente a 0,63 y MRR 0,83 frente a 0,87. Con el modelo local, el mismo documento se indexa en 67 s sin esperas.
 - La extracción pasó de `fitz` a `pymupdf` + `pymupdf4llm` (Markdown con títulos), y el entorno usa Python 3.14.
+- El proveedor por etapa y el respaldo entre Groq y Gemini llegaron desde la rama `release-consolidacion-mvp` del repositorio del equipo (diseño del líder del squad); este ADR registra su adopción en este repositorio.
 
 ## Decisión
 
