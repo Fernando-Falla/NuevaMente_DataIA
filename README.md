@@ -24,7 +24,7 @@ Pipeline de **ingestión → chunking → embeddings → vector store → genera
 - **Chunking estructural:** el splitter protege bloques de código y tablas Markdown antes de cortar, y conserva `page`, `page_end` y `section` para la trazabilidad (`document_id` → `chunk_id` → fuente).
 - **Decisiones medidas:** los embeddings locales (`paraphrase-multilingual-mpnet-base-v2`) se adoptaron por defecto tras compararlos con Gemini en 9 documentos y 27 consultas: igual Hit@4 (0,96), −0,05 en Precision@4 y sin esperas de cuota (ver [Evaluación](#evaluación)).
 - **LLM-as-a-judge para fidelidad:** el juez por ítem distingue contenido fiel (1,0) de contenido con datos inventados (0,0), y corrigió un falso negativo del juez original en contenido fiel con analogías (0,5 → 1,0).
-- **Operación con cuotas gratuitas:** límites de tamaño antes de llamar al LLM, control de RPM/TPM, reintentos ante `429` y proveedor por etapa (Gemini o Groq) con fallback.
+- **Operación con cuotas gratuitas:** límites de tamaño antes de llamar al LLM, control de RPM/TPM y reintentos ante `429`.
 - **Contratos explícitos:** DTOs con Pydantic v2, errores tipados (no excepciones crudas), ADRs y pruebas con pytest sin red ni LLM.
 
 ---
@@ -63,7 +63,7 @@ Documento (PDF / MD / TXT)
 
 Reportes completos en `.reports/`.
 
-**Retrieval (IA-04, 29-sep-2026):** 5 consultas sobre documentos de TI, `top_k=4`. Recall@4 = 1,00 en las 5. Precision@4 = 1,00 en 4 y 0,25 en una. Es un set pequeño: sirvió para validar la etapa, no como benchmark. La relevancia de cada fragmento la juzgó un LLM (Gemini). Recall@4 aquí es un proxy: vale 1 si hay al menos un fragmento relevante entre los 4 primeros (equivale a Hit@4).
+**Retrieval (IA-04, 29-sep-2026):** 5 consultas sobre documentos de TI, `top_k=4`. Hit@4 = 1,00 en las 5 (el script lo reporta como "Recall@4": vale 1 si hay al menos un fragmento relevante entre los 4 primeros). Precision@4 y MRR = 1,00 en 4 y 0,25 en una. La relevancia de cada fragmento la juzgó un LLM (Gemini). Es un set pequeño: una verificación inicial de la etapa, no un benchmark.
 
 **Embeddings (22-oct-2026):** 9 documentos (TI, Salud, Fintech y Marketing digital), 27 consultas, `top_k=4`, relevancia juzgada por pooling con Gemini.
 
@@ -104,6 +104,8 @@ El **nicho** (`TI`, `Fintech`, `Salud`, `Marketing digital`, `General`) es otro 
 Los rechazos ocurren antes de llamar al LLM. Las llamadas a Gemini respetan límites por minuto configurables, pensados para la cuenta gratuita, y ante un `429` esperan y reintentan. Detalle: `specs/nueva_mente/ia02_tamano_y_cuota.md` y `.reports/ia02-tamano-y-dominios-2026-10-22.md`.
 
 ## Proveedores por etapa
+
+El proveedor por etapa y el respaldo entre Groq y Gemini llegaron desde la rama `release-consolidacion-mvp` del repositorio del equipo; no son diseño mío.
 
 Cada etapa puede usar Gemini o Groq: `IA_PROVIDER_CLASIFICACION` (metadata y clasificación de chunks), `IA_PROVIDER_GENERACION` e `IA_PROVIDER_CRITICO`. Usar otro proveedor en el crítico da una evaluación más independiente del generador y reparte la cuota. Si Groq falla, no hay `GROQ_API_KEY` o el prompt no cabe en su cuota por minuto (8.000 tokens en la cuenta gratuita), la etapa usa Gemini.
 
@@ -146,7 +148,7 @@ No se recomienda usar varias cuentas gratuitas para sumar cuota: la cuota de Gem
 ├── tests/                        # Pruebas sin red ni LLM
 ├── scripts/
 │   ├── test_pipeline_local.py    # Prueba E2E local IA-02 → IA-04
-│   ├── validate_retrieval.py     # Validación IA-04 (Recall@4, Precision@4)
+│   ├── validate_retrieval.py     # Validación IA-04 (Hit@4, Precision@4)
 │   ├── comparar_chunking.py      # Compara extracción y chunking entre dos versiones (sin LLM)
 │   └── run_pipeline_real.py      # Pipeline completo IA-02 → IA-08 con Gemini real
 ├── specs/                        # Especificaciones y ADRs (specs/nueva_mente/decisiones/)
@@ -277,7 +279,7 @@ Mismos parámetros. Envía el progreso en tiempo real para que el frontend no es
 | IA-03 | Chunking estructural + metadata | Completado |
 | IA-04 | Embeddings + ChromaDB + validación | Completado |
 | Fase A | Mejoras de IA-02 a IA-04 (`docs/MEJORAS_FASE_A.md`) | Completado |
-| Proveedores | LLM por etapa (Gemini/Groq) y embeddings locales por defecto | Completado |
+| Proveedores | Embeddings locales por defecto; LLM por etapa Gemini/Groq (desde la rama del equipo) | Completado |
 | IA-05 | Selección de contexto por cobertura | Completado |
 | IA-06 | Generación en 5 formatos × 3 perfiles | Completado |
 | IA-07 | Validación de fidelidad (juez por ítem) | Completado |
@@ -290,7 +292,7 @@ Mismos parámetros. Envía el progreso en tiempo real para que el frontend no es
 Las decisiones que modifican la constitución se registran como ADR en `specs/nueva_mente/decisiones/`:
 
 - **ADR-001:** cinco formatos de salida × tres perfiles. El formato apenas influye en el consumo de tokens: entre el 90 % y el 98 % es la entrada (fragmentos del documento).
-- **ADR-002:** embeddings locales por defecto y proveedor de LLM por etapa (Gemini/Groq).
+- **ADR-002:** embeddings locales por defecto, tras la comparación en 27 consultas. El proveedor de LLM por etapa (Gemini/Groq) se incorporó desde la rama del equipo.
 
 Otras:
 - Extracción PDF con `import pymupdf` (no `fitz`, deprecado).
